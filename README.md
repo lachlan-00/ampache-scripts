@@ -1,10 +1,11 @@
 # ampache-scripts
-just some of the things i'm playing around with in ampache
-
 Insert data from Last.fm into your ampache database
 
 Currently the project is a single script:
  * mysql-connection.py
+
+Right now this is poorly written (just finished today) but it works
+I want to expand on this further into an ampache plugin that will update the databse in the same way that last.fm scrobbles work
 
 ABOUT THE SCRIPT
 ----------------

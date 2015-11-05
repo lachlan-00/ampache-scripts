@@ -116,11 +116,12 @@ if cnx:
                                        " `object_type` = 'artist' AND `date`" +
                                        " = '" + str(row[0]) + "' AND `obje" +
                                        "ct_id` = '" +
-                                       str(tmpartist) +
-                                       "';")
+                                       str(tmpartist) + "';")
 
                         # make sure the track is set to played in the song table
-                        setplayed = "UPDATE `song` SET `played` = 1 WHERE `id` = " + str(tmpsong) + " AND `played` = 0;"
+                        setplayed = ("UPDATE `song` SET `played` = 1" +
+                                     " WHERE `id` = " + str(tmpsong) +
+                                     " AND `played` = 0;")
                         tmpcursor.execute(setplayed)
 
                         tmpcursor.execute(checksong)
