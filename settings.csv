@@ -1,0 +1,9 @@
+# Database variables
+dbuser,username
+dbpass,password
+dbhost,127.0.0.1
+dbname,database
+
+# Ampache variables
+myid,2
+

@@ -16,7 +16,59 @@
 
 import csv
 import os
+import sys
 import mysql.connector
+
+process = None
+dumpfile = None
+lovedfile = None
+settings = 'settings.csv'
+
+# get dump file name from arguments
+for arguments in sys.argv:
+    if arguments[:3] == '/d:':
+        process = 'dump'
+        dumpfile = arguments[3:]
+    else:
+        dumpfile = 'dump.txt'
+    if arguments[:3] == '/l:':
+        process = 'loved'
+        lovedfile = arguments[3:]
+    else:
+        lovedfile = 'loved.txt'
+
+# get settings for database
+if os.path.isfile(settings):
+    print('found settings file')
+    with open(settings, 'r') as csvfile:
+        openfile = csv.reader(csvfile)
+        for row in openfile:
+            try:
+                test = row[0]
+            except IndexError:
+                test = None
+            if test:
+                if row[0] == 'dbuser':
+                    dbuser = row[1]
+                elif row[0] == 'dbpass':
+                    dbpass = row[1]
+                elif row[0] == 'dbhost':
+                    dbhost = row[1]
+                elif row[0] == 'dbname':
+                    dbname = row[1]
+                elif row[0] == 'myid':
+                    myid = row[1]
+    csvfile.close()
+else:
+    # Database variables
+    dbuser='username'
+    dbpass='password'
+    dbhost='127.0.0.1'
+    dbname='database'
+
+    # Ampache variables
+    myid = '2'
+
 
 # object_count will store each play for tracks
 # with separate rows for artist & album
@@ -28,24 +80,20 @@ albumquery = "SELECT `id` FROM `album` WHERE `name` = '"
 artistquery = "SELECT `id` FROM `artist` WHERE `name` = '"
 
 
-# TAB separated from lastscrape.py/last.fm data
-dumpfile = 'dump.txt'
-
 notfoundcount = 0
 notfoundlist = []
 
 cnx = None
 
 try:
-    cnx = mysql.connector.connect(user='dpuser', password='dbpassword',
-                                  host='127.0.0.1', database='dbname')
+    cnx = mysql.connector.connect(user = dbuser, password = dbpass,
+                                  host = dbhost, database= dbname)
 except mysql.connector.errors.InterfaceError:
     try:
-        cnx = mysql.connector.connection.MySQLConnection(user='dbuser',
-                                                         password='dbpass' +
-                                                         'word',
-                                                         host='192.168.0.1',
-                                                         database='dbname')
+        cnx = mysql.connector.connection.MySQLConnection(user = dbuser,
+                                                         password = dbpass,
+                                                         host = dbhost,
+                                                         database = dbname)
     except mysql.connector.errors.InterfaceError:
         pass
 if cnx:

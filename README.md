@@ -28,5 +28,7 @@ USAGE
  * Get a dump for your username.
      python3 ./lastexport3.py -u your_lastfm_username -o dump.txt
  * Run the merge script and get an output dump of bad matches
-    python3 ./python3 ./mysql-connection.py > output.txt
+    python3 ./mysql-connection.py > output.txt
 
+You can also set a specifiv file name using arguments
+    python3 ./mysql-connection.py /d:dump.txt > output.txt
