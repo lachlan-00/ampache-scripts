@@ -7,6 +7,7 @@ Currently the project is a single script:
 Right now this is poorly written (just finished today) but it works
 I want to expand on this further into an ampache plugin that will update the databse in the same way that last.fm scrobbles work
 
+
 ABOUT THE SCRIPT
 ----------------
 I have used Last.fm for a a decade and i want to move away to a private solution.
@@ -17,6 +18,12 @@ https://gitorious.org/fmthings/lasttolibre
 
 (the project seems dead now so i'm going to update it to python3 when i have time to do the rest)
 https://github.com/lachlan-00/lastscrape-gui/blob/master/lastexport3.py
+
+
+REQUIREMENTS
+------------
+
+python3-mysql.connector
 
 
 USAGE

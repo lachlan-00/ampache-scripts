@@ -23,19 +23,21 @@ process = None
 dumpfile = None
 lovedfile = None
 settings = 'settings.csv'
+dumpfile = 'dump.txt'
+lovedfile = 'loved.txt'
 
 # get dump file name from arguments
 for arguments in sys.argv:
     if arguments[:3] == '/d:':
         process = 'dump'
         dumpfile = arguments[3:]
-    else:
-        dumpfile = 'dump.txt'
+    elif os.path.isfile(dumpfile):
+        process = 'dump'
     if arguments[:3] == '/l:':
         process = 'loved'
         lovedfile = arguments[3:]
-    else:
-        lovedfile = 'loved.txt'
+    elif os.path.isfile(lovedfile):
+        process = 'loved'
 
 # get settings for database
 if os.path.isfile(settings):
