@@ -192,19 +192,19 @@ if cnx:
                         # database is missing this play
                         elif not foundsong and not foundalbum and not foundartist:
                             tmpincursor = cnx.cursor()
-                            insertsong = ("INSERT INTO `ampache-debian`.`object_count` " +
+                            insertsong = ("INSERT INTO `" + dbname +"`.`object_count` " +
                                "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
                                "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '2'," +
                                " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertsong)
-                            insertalbum = ("INSERT INTO `ampache-debian`.`object_count` " +
+                            insertalbum = ("INSERT INTO `" + dbname +"`.`object_count` " +
                                "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
                                "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '2'," +
                                " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertalbum)
-                            insertartist = ("INSERT INTO `ampache-debian`.`object_count` " +
+                            insertartist = ("INSERT INTO `" + dbname +"`.`object_count` " +
                                "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
                                "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '2'," +
