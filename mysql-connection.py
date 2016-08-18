@@ -13,15 +13,19 @@
 
 """
 
-
 import csv
 import os
 import sys
 import mysql.connector
 
 process = None
-dumpfile = None
-lovedfile = None
+# dumpfile = None
+# lovedfile = None
+csvfile = None
+dbuser = None
+dbpass = None
+dbhost = None
+dbname = None
 settings = 'settings.csv'
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
@@ -63,14 +67,13 @@ if os.path.isfile(settings):
     csvfile.close()
 else:
     # Database variables
-    dbuser='username'
-    dbpass='password'
-    dbhost='127.0.0.1'
-    dbname='database'
+    dbuser = 'username'
+    dbpass = 'password'
+    dbhost = '127.0.0.1'
+    dbname = 'database'
 
     # Ampache variables
     myid = '2'
-
 
 # object_count will store each play for tracks
 # with separate rows for artist & album
@@ -81,21 +84,20 @@ songquery = "SELECT `id` FROM `song` WHERE `title` = '"
 albumquery = "SELECT `id` FROM `album` WHERE `name` = '"
 artistquery = "SELECT `id` FROM `artist` WHERE `name` = '"
 
-
 notfoundcount = 0
 notfoundlist = []
 
 cnx = None
 
 try:
-    cnx = mysql.connector.connect(user = dbuser, password = dbpass,
-                                  host = dbhost, database= dbname)
+    cnx = mysql.connector.connect(user=dbuser, password=dbpass,
+                                  host=dbhost, database=dbname)
 except mysql.connector.errors.InterfaceError:
     try:
-        cnx = mysql.connector.connection.MySQLConnection(user = dbuser,
-                                                         password = dbpass,
-                                                         host = dbhost,
-                                                         database = dbname)
+        cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
+                                                         password=dbpass,
+                                                         host=dbhost,
+                                                         database=dbname)
     except mysql.connector.errors.InterfaceError:
         pass
 if cnx:
@@ -106,7 +108,7 @@ if cnx:
         with open(dumpfile, 'r') as csvfile:
             # lastscrape is sorted recent -> oldest so reverse that
             # that way the database will have a lower ID for older tracks
-            openfile = reversed(list(csv.reader(csvfile, delimiter='\t',)))
+            openfile = reversed(list(csv.reader(csvfile, delimiter='\t', )))
             for row in openfile:
                 tmprow = []
                 tmpartist = None
@@ -192,32 +194,32 @@ if cnx:
                         # database is missing this play
                         elif not foundsong and not foundalbum and not foundartist:
                             tmpincursor = cnx.cursor()
-                            insertsong = ("INSERT INTO `" + dbname +"`.`object_count` " +
-                               "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                               " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                               "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '2'," +
-                               " NULL, NULL, NULL, NULL, 'stream');")
+                            insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                          "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                          " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                          "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '2'," +
+                                          " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertsong)
-                            insertalbum = ("INSERT INTO `" + dbname +"`.`object_count` " +
-                               "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                               " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                               "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '2'," +
-                               " NULL, NULL, NULL, NULL, 'stream');")
+                            insertalbum = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                           "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                           " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                           "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '2'," +
+                                           " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertalbum)
-                            insertartist = ("INSERT INTO `" + dbname +"`.`object_count` " +
-                               "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                               " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                               "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '2'," +
-                               " NULL, NULL, NULL, NULL, 'stream');")
+                            insertartist = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                            "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                            " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                            "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '2'," +
+                                            " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertartist)
-                         #partial match means it didn't get everything we needed
+                            # partial match means it didn't get everything we needed
                         else:
                             notfoundlist.append(row)
                     # If you don't find all 3 you don't have an exact match
                     # so don't add these track to the database
                     else:
                         notfoundlist.append(row)
-                        notfoundcount = notfoundcount + 1
+                        notfoundcount += 1
     # close connections
     csvfile.close()
     cnx.close()
