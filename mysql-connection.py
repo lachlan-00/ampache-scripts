@@ -9,7 +9,7 @@
   then query your ampache database
 
   if it matches the artist, album and song
-  it will update your databse to reflect each play
+  it will update your database to reflect each play
 
 """
 
@@ -199,7 +199,6 @@ if cnx:
                     # if you find all three values in the database
                     # we have an exact match
                     if tmpsong and tmpalbum and tmpartist:
-
                         tmpcursor = cnx.cursor()
 
                         # ampache creates a separate row for 
@@ -213,72 +212,84 @@ if cnx:
                         setplayed = ("UPDATE `song` SET `played` = 1" +
                                      " WHERE `id` = " + str(tmpsong) +
                                      " AND `played` = 0;")
+                        # Queries to insert data
+                        insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                      "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                      " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                      "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '" +
+                                      myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
+                        insertalbum = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                       "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                       " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                       "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '" +
+                                       myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
+                        insertartist = ("INSERT INTO `" + dbname + "`.`object_count` " +
+                                        "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
+                                        " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
+                                        "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '" +
+                                        myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
+                        # Queries to update existing data
+                        updatesong = ("UPDATE `" + dbname + "`.`object_count` " +
+                                      "SET `object_id` = " + str(tmpsong) + " WHERE " +
+                                      "date = " + str(row[0]) + " AND object_type = 'song'" +
+                                      "AND `user` = " + str(myid) + ";")
+                        updatealbum = ("UPDATE `" + dbname + "`.`object_count` " +
+                                       "SET `object_id` = " + str(tmpalbum) + " WHERE " +
+                                       "date = " + str(row[0]) + " AND object_type = 'album'" +
+                                       "AND `user` = " + str(myid) + ";")
+                        updateartist = ("UPDATE `" + dbname + "`.`object_count` " +
+                                        "SET `object_id` = " + str(tmpartist) + " WHERE " +
+                                        "date = " + str(row[0]) + " AND object_type = 'artist'" +
+                                        "AND `user` = " + str(myid) + ";")
 
                         tmpcursor.execute(checkforplay)
 
                         for rows in tmpcursor:
-                            if str(row[0]) in rows:
+                            if str(row[0]) == str(rows[0]):
                                 founddate = True
-                            if tmpsong in rows:
+                            if tmpsong == rows[2]:
                                 foundsong = True
-                            if tmpalbum in rows:
+                            if tmpalbum == rows[2]:
                                 foundalbum = True
-                            if tmpartist in rows:
+                            if tmpartist == rows[2]:
                                 foundartist = True
-
+                        testing = False
                         # database already has this play recorded
-                        if foundsong and foundalbum and foundartist:
+                        if founddate and foundsong and foundalbum and foundartist:
                             tmpcursor.execute(setplayed)
                             pass
                         # database is missing this play completely
-                        elif not foundsong and not foundalbum and not foundartist and not founddate:
+                        elif not founddate and (tmpartist and tmpartist and tmpsong):
                             print('\ninserting row')
                             print(row)
                             tmpincursor = cnx.cursor()
-                            insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
-                                          "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                                          " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                          "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '" +
-                                          myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertsong)
-                            insertalbum = ("INSERT INTO `" + dbname + "`.`object_count` " +
-                                           "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                                           " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                           "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '" +
-                                           myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertalbum)
-                            insertartist = ("INSERT INTO `" + dbname + "`.`object_count` " +
-                                            "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
-                                            " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                            "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '" +
-                                            myid + "'," + " NULL, NULL, NULL, NULL, 'stream');")
                             tmpincursor.execute(insertartist)
                             tmpincursor.execute(setplayed)
                         # Found the date but not the right song
-                        elif founddate and not (foundsong and foundalbum and foundartist):
-                            print('\nupdating row')
-                            print(row)
+                        elif founddate and (not foundartist or not foundalbum or not foundsong):
                             tmpupcursor = cnx.cursor()
-                            updatesong = ("UPDATE `" + dbname + "`.`object_count` " +
-                                          "SET `object_id` = '" + str(tmpsong) + "' WHERE " +
-                                          "date = " + row[0] + "' AND object_type = 'artist'" +
-                                          "`user` = " + myid + ";")
-                            tmpupcursor.execute(updatesong)
-                            updatealbum = ("UPDATE `" + dbname + "`.`object_count` " +
-                                           "SET `object_id` = '" + str(tmpalbum) + "' WHERE " +
-                                           "date = " + row[0] + "' AND object_type = 'artist'" +
-                                           "`user` = " + myid + ";")
-                            tmpupcursor.execute(updatealbum)
-                            updateartist = ("UPDATE `" + dbname + "`.`object_count` " +
-                                            "SET `object_id` = '" + str(tmpartist) + "' WHERE " +
-                                            "date = " + row[0] + "' AND object_type = 'artist'" +
-                                            "`user` = " + myid + ";")
-                            tmpupcursor.execute(updateartist)
+                            # Because there are three rows there might be one missing so check.
+                            if foundsong:
+                                tmpupcursor.execute(updatesong)
+                            else:
+                                tmpupcursor.execute(insertsong)
+                            if foundalbum:
+                                tmpupcursor.execute(updatealbum)
+                            else:
+                                tmpupcursor.execute(insertalbum)
+                            if foundartist:
+                                tmpupcursor.execute(updateartist)
+                            else:
+                                tmpupcursor.execute(insertartist)
+                            # always check to set played status
                             tmpupcursor.execute(setplayed)
 
                         # partial match means it didn't get everything we needed
                         else:
                             notfoundlist.append(row)
+                            notfoundcount += 1
                     # If you don't find all 3 you don't have an exact match
                     # so don't add these track to the database
                     else:
