@@ -124,18 +124,11 @@ if cnx:
                     # search ampache db for song, album and artist
                     # Look for a musicbrainz ID before the text of the tags
                     # This should hopefully be more reliable if your tags change a lot
-                    if row[4]:
-                        tmpquery = (songquery + "`mbid` = '" + row[4].replace("'", "''") + "'")
-                        # Check the database
-                        try:
-                            cursor.execute(tmpquery)
-                        except mysql.connector.errors.ProgrammingError:
-                            print('ERROR WITH QUERY:\n' + tmpquery)
-                        for rows in cursor:
-                            tmpsong = rows[0]
-                    # Look for a musicbrainz ID ofer the text of the tags
-                    elif not tmpsong:
-                        tmpquery = (songquery + "`title` = '" + row[1].replace("'", "''") + "'")
+                    if row[4] and row[6] and row[5]:
+                        tmpquery = (songquery + "`mbid` = '" + row[4].replace("'", "''") + "' AND artist in " +
+                                    "(SELECT id from artist WHERE `id` = '" + row[5].replace("'", "''") + "') AND " +
+                                    "album in (SELECT id from album WHERE `id` = '" + row[6].replace("'", "''") +
+                                    "');")
                         # Check the database
                         try:
                             cursor.execute(tmpquery)
@@ -144,17 +137,11 @@ if cnx:
                         for rows in cursor:
                             tmpsong = rows[0]
                     # search ampache db for album
-                    if row[6]:
-                        tmpquery = (songquery + "`mbid` = '" + row[6].replace("'", "''") + "'")
-                        # Check the database
-                        try:
-                            cursor.execute(tmpquery)
-                        except mysql.connector.errors.ProgrammingError:
-                            print('ERROR WITH QUERY:\n' + tmpquery)
-                        for rows in cursor:
-                            tmpalbum = rows[0]
-                    elif not tmpalbum:
-                        tmpquery = (albumquery + "`name` = '" + row[3].replace("'", "''") + "'")
+                    if row[6] and row[4]:
+                        tmpquery = (albumquery + "`mbid` = '" + row[6].replace("'", "''") + "' AND " +
+                                    "id in (SELECT album from song WHERE `title` = '" + row[1].replace("'", "''") +
+                                    "') AND album_artist in (SELECT id from artist WHERE `id` = '" +
+                                    row[4].replace("'", "''") + "');")
                         # Check the database
                         try:
                             cursor.execute(tmpquery)
@@ -164,7 +151,7 @@ if cnx:
                             tmpalbum = rows[0]
                     # search ampache db for artist
                     if row[5]:
-                        tmpquery = (songquery + "`mbid` = '" + row[5].replace("'", "''") + "'")
+                        tmpquery = (artistquery + "`mbid` = '" + row[5].replace("'", "''") + "'")
                         # Check the database
                         try:
                             cursor.execute(tmpquery)
@@ -172,7 +159,34 @@ if cnx:
                             print('ERROR WITH QUERY:\n' + tmpquery)
                         for rows in cursor:
                             tmpartist = rows[0]
-                    elif not tmpartist:
+                    # find missing data if the mbid didn't work
+                    if not tmpsong:
+                        tmpquery = (songquery + "`title` = '" + row[1].replace("'", "''") + "' AND artist in " +
+                                    "(SELECT id from artist WHERE `name` = '" + row[2].replace("'", "''") + "') AND " +
+                                    "album in (SELECT id from album WHERE `name` = '" + row[3].replace("'", "''") +
+                                    "');")
+                        # Check the database
+                        try:
+                            cursor.execute(tmpquery)
+                        except mysql.connector.errors.ProgrammingError:
+                            print('ERROR WITH QUERY:\n' + tmpquery)
+                        for rows in cursor:
+                            tmpsong = rows[0]
+                    # Check for the album
+                    if not tmpalbum:
+                        tmpquery = (albumquery + "`name` = '" + row[3].replace("'", "''") + "' AND " +
+                                    "id in (SELECT album from song WHERE `title` = '" + row[1].replace("'", "''") +
+                                    "') AND album_artist in (SELECT id from artist WHERE `name` = '" +
+                                    row[2].replace("'", "''") + "');")
+                        # Check the database
+                        try:
+                            cursor.execute(tmpquery)
+                        except mysql.connector.errors.ProgrammingError:
+                            print('ERROR WITH QUERY:\n' + tmpquery)
+                        for rows in cursor:
+                            tmpalbum = rows[0]
+                    # search ampache db for artist
+                    if not tmpartist:
                         tmpquery = (artistquery + "`name` = '" + row[2].replace("'", "''") + "'")
                         # Check the database
                         try:
@@ -218,6 +232,8 @@ if cnx:
                             pass
                         # database is missing this play completely
                         elif not foundsong and not foundalbum and not foundartist and not founddate:
+                            print('\ninserting row')
+                            print(row)
                             tmpincursor = cnx.cursor()
                             insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                           "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
@@ -240,6 +256,8 @@ if cnx:
                             tmpincursor.execute(setplayed)
                         # Found the date but not the right song
                         elif founddate and not (foundsong and foundalbum and foundartist):
+                            print('\nupdating row')
+                            print(row)
                             tmpupcursor = cnx.cursor()
                             updatesong = ("UPDATE `" + dbname + "`.`object_count` " +
                                           "SET `object_id` = '" + str(tmpsong) + "' WHERE " +
