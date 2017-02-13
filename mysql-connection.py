@@ -241,6 +241,16 @@ if cnx:
                                         "SET `object_id` = " + str(tmpartist) + " WHERE " +
                                         "date = " + str(row[0]) + " AND object_type = 'artist'" +
                                         "AND `user` = " + str(myid) + ";")
+                        # Queries to delete duplicates for the date
+                        removedupesong = ("DELETE FROM `" + dbname + "`.`object_count` " +
+                                          "WHERE date = " + str(row[0]) + " AND object_type = 'song' " +
+                                          "AND object_id != " + str(tmpsong) + ";")
+                        removedupealbum = ("DELETE FROM `" + dbname + "`.`object_count` " +
+                                          "WHERE date = " + str(row[0]) + " AND object_type = 'album' " +
+                                          "AND object_id != " + str(tmpalbum) + ";")
+                        removedupeartist = ("DELETE FROM `" + dbname + "`.`object_count` " +
+                                          "WHERE date = " + str(row[0]) + " AND object_type = 'artist' " +
+                                          "AND object_id != " + str(tmpartist) + ";")
 
                         tmpcursor.execute(checkforplay)
 
@@ -253,15 +263,19 @@ if cnx:
                                 foundalbum = True
                             if tmpartist == rows[2]:
                                 foundartist = True
-                        testing = False
+
                         # database already has this play recorded
                         if founddate and foundsong and foundalbum and foundartist:
+                            # Check for duplicate plays as you can't be listening to two songs at once.
+                            # Do it when a play is confirmed as we know that all other data is incorrect
+                            tmpcursor.execute(removedupesong)
+                            tmpcursor.execute(removedupealbum)
+                            tmpcursor.execute(removedupeartist)
+                            # make sure the song is marked as played
                             tmpcursor.execute(setplayed)
                             pass
                         # database is missing this play completely
                         elif not founddate and (tmpartist and tmpartist and tmpsong):
-                            print('\ninserting row')
-                            print(row)
                             tmpincursor = cnx.cursor()
                             tmpincursor.execute(insertsong)
                             tmpincursor.execute(insertalbum)
