@@ -78,6 +78,7 @@ else:
 selectquery = "SELECT * FROM `object_count` ORDER BY `id` DESC"
 # the song table stores artist/album as id (from artist/album tables)
 songquery = "SELECT `id` FROM `song` WHERE "
+songalbumquery = "SELECT `album` FROM `song` WHERE "
 # get ID for song table
 albumquery = "SELECT `id` FROM `album` WHERE "
 artistquery = "SELECT `id` FROM `artist` WHERE "
@@ -195,6 +196,68 @@ if cnx:
                             print('ERROR WITH QUERY:\n' + tmpquery)
                         for rows in cursor:
                             tmpartist = rows[0]
+                    # If you're still missing the album but have an artist and a song try to find single album matches
+                    # It's possible for last.fm exports to be missing album details especially for older plays
+                    if not tmpalbum:
+                        if tmpartist:
+                            tmpcount = 0
+                            tmpquery = (albumquery + "`id` in (" + songalbumquery + "`title` = '" +
+                                        row[1].replace("'", "''") + "') AND album_artist in " +
+                                        "(SELECT id from artist WHERE `id` = '" + str(tmpartist) + "');")
+                            try:
+                                cursor.execute(tmpquery)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            for rows in cursor:
+                                # Don't allow multiple albums
+                                if tmpcount == 0:
+                                    tmpalbum = rows[0]
+                                else:
+                                    tmpalbum = None
+                                tmpcount += 1
+                        # Look for albums under "Various Artist" tags
+                        if not tmpalbum:
+                            tmpcount = 0
+                            tmpquery = (albumquery + "`id` in (" + songalbumquery + "`title` = '" +
+                                        row[1].replace("'", "''") + "') AND album_artist in " +
+                                        "(SELECT id from artist WHERE `name` = 'Various Artists');")
+                            try:
+                                cursor.execute(tmpquery)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            for rows in cursor:
+                                # Don't allow multiple albums
+                                if tmpcount == 0:
+                                    tmpalbum = rows[0]
+                                else:
+                                    tmpalbum = None
+                                tmpcount += 1
+                            # if you get a various artist you will want the song artist instead
+                            tmpcount = 0
+                            tmpquery = (artistquery + "`name` = '" + row[2].replace("'", "''") + "'")
+                            try:
+                                cursor.execute(tmpquery)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            for rows in cursor:
+                                # Don't allow multiple albums
+                                if tmpcount == 0:
+                                    tmpartist = rows[0]
+                                else:
+                                    tmpartist = None
+                                tmpcount += 1
+                        # If you find the missing album you need to check for the song again as well
+                        if tmpalbum:
+                            if not tmpsong:
+                                tmpquery = (songquery + "`title` = '" + row[1].replace("'", "''") +
+                                            "' AND album in (SELECT id from album WHERE `id` = '" +
+                                            str(tmpalbum) + "');")
+                                try:
+                                    cursor.execute(tmpquery)
+                                except mysql.connector.errors.ProgrammingError:
+                                    print('ERROR WITH QUERY:\n' + tmpquery)
+                                for rows in cursor:
+                                    tmpsong = rows[0]
 
                     # if you find all three values in the database
                     # we have an exact match
@@ -246,11 +309,11 @@ if cnx:
                                           "WHERE date = " + str(row[0]) + " AND object_type = 'song' " +
                                           "AND object_id != " + str(tmpsong) + ";")
                         removedupealbum = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                          "WHERE date = " + str(row[0]) + " AND object_type = 'album' " +
-                                          "AND object_id != " + str(tmpalbum) + ";")
+                                           "WHERE date = " + str(row[0]) + " AND object_type = 'album' " +
+                                           "AND object_id != " + str(tmpalbum) + ";")
                         removedupeartist = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                          "WHERE date = " + str(row[0]) + " AND object_type = 'artist' " +
-                                          "AND object_id != " + str(tmpartist) + ";")
+                                            "WHERE date = " + str(row[0]) + " AND object_type = 'artist' " +
+                                            "AND object_id != " + str(tmpartist) + ";")
 
                         tmpcursor.execute(checkforplay)
 
