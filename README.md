@@ -1,11 +1,24 @@
 # ampache-scripts
 Insert data from Last.fm into your ampache database
+GPLv3 <http://www.gnu.org/licenses/>
 
 Currently the project is a single script:
  * mysql-connection.py
 
-Right now this is poorly written (just finished today) but it works
-I want to expand on this further into an ampache plugin that will update the databse in the same way that last.fm scrobbles work
+
+NEWS
+----
+
+As of 2017-02-13 mysql-connection can be considered stable.
+
+I'm satisfied that only the correct data will be updated and only incorrect or duplicate rows will be removed.
+
+There are multiple checks in place to ensure data is written when all checks are met.
+
+In the current version plays will be skipped if they can't be identified or filtered to an individual song/album/artist.
+This is to ensure that all data is correct on instertion to the DB.
+
+In my testing the majority of duplicates are mispelled or are songs without an album that are duplicated at least once in my collection.
 
 
 ABOUT THE SCRIPT
@@ -29,7 +42,8 @@ python3-mysql.connector
 USAGE
 -----
 This script that will parse a text file and add each play to the ampache database.
-If it can't match the song it will dump each row that was missed at the end so you can try again
+If it can't match the song it will dump each row that was missed at the end so you can try again.
+Once a song has been verified as entered into the database it won't be overwritten each time.
 
 USAGE
  * Get a dump for your username.
