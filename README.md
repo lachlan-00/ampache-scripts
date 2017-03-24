@@ -1,13 +1,24 @@
 # ampache-scripts
-Insert data from Last.fm into your ampache database
 GPLv3 <http://www.gnu.org/licenses/>
 
-Currently the project is a single script:
+There are two scripts in the project with separate uses:
  * mysql-connection.py
+     Insert data from Last.fm into your ampache database
+
+ * get_files_from_mysql.py
+     Query ampache database for top rated songs and copy
+     to desired path
+
+REQUIREMENTS
+------------
+
+python3-mysql.connector
 
 
 NEWS
 ----
+
+I've added a new script. (get_files_from_mysql.py) i use this to copy my 5 star tracks to USB.
 
 As of 2017-02-13 mysql-connection can be considered stable.
 
@@ -21,8 +32,27 @@ This is to ensure that all data is correct on instertion to the DB.
 In my testing the majority of duplicates are mispelled or are songs without an album that are duplicated at least once in my collection.
 
 
-ABOUT THE SCRIPT
-----------------
+ABOUT get_files_from_mysql.py
+-----------------------------
+This is a basic query and copy script but i found it really goodfor keeping my car USB up to date.
+
+There are a few minor issues with file collisions on the destination but nothing destructive.
+
+WARNING; when you sync the destination folder is cleaned up for tracks that should not be there.
+This will delete anything else in the destination so make sure you use an empty folder.
+
+USAGE
+-----
+Pretty simple, just make sure you have a valid destination and as long as your databse settings are correct it will start copying.
+
+./get_files_from_mysql.py /d:/media/user/USB/music/
+
+After the sync it will clean up old files that shouldn't be there.
+This is helpful if you change ratings but will remove any files other than music from the destination.
+
+
+ABOUT mysql-connection.py
+-------------------------
 I have used Last.fm for a a decade and i want to move away to a private solution.
 
 lastexport.py is used for exporting your listening history (also loved/banned tracks) from last.fm or libre.fm to a text file.
@@ -31,12 +61,6 @@ https://gitorious.org/fmthings/lasttolibre
 
 (the project seems dead now so i'm going to update it to python3 when i have time to do the rest)
 https://github.com/lachlan-00/lastscrape-gui/blob/master/lastexport3.py
-
-
-REQUIREMENTS
-------------
-
-python3-mysql.connector
 
 
 USAGE
