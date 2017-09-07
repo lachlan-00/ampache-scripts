@@ -82,6 +82,7 @@ songalbumquery = "SELECT `album` FROM `song` WHERE "
 # get ID for song table
 albumquery = "SELECT `id` FROM `album` WHERE "
 artistquery = "SELECT `id` FROM `artist` WHERE "
+clearnotplayed = "UPDATE `song` SET played = 0 WHERE played = 1 and id not in (SELECT object_id from object_count)"
 
 notfoundcount = 0
 notfoundlist = []
@@ -110,6 +111,7 @@ if cnx:
             openfile = reversed(list(csv.reader(csvfile, delimiter='\t', )))
             for row in openfile:
                 tmprow = []
+                tmpdate = None
                 tmpartist = None
                 tmpalbum = None
                 tmpsong = None
@@ -125,10 +127,14 @@ if cnx:
                     # search ampache db for song, album and artist
                     # Look for a musicbrainz ID before the text of the tags
                     # This should hopefully be more reliable if your tags change a lot
+                    #
+                    # [0]=time [1]=track [2]=artist [3]=album [4]=trackMBID [5]=artistMBID [6]=albumMBID
+                    #
+                    tmpdate = str(row[0])
                     if row[4] and row[6] and row[5]:
                         tmpquery = (songquery + "`mbid` = '" + row[4].replace("'", "''") + "' AND artist in " +
-                                    "(SELECT id from artist WHERE `id` = '" + row[5].replace("'", "''") + "') AND " +
-                                    "album in (SELECT id from album WHERE `id` = '" + row[6].replace("'", "''") +
+                                    "(SELECT id from artist WHERE `mbid` = '" + row[5].replace("'", "''") + "') AND " +
+                                    "album in (SELECT mbid from album WHERE `mbid` = '" + row[6].replace("'", "''") +
                                     "');")
                         # Check the database
                         try:
@@ -141,7 +147,7 @@ if cnx:
                     if row[6] and row[4]:
                         tmpquery = (albumquery + "`mbid` = '" + row[6].replace("'", "''") + "' AND " +
                                     "id in (SELECT album from song WHERE `title` = '" + row[1].replace("'", "''") +
-                                    "') AND album_artist in (SELECT id from artist WHERE `id` = '" +
+                                    "') AND album_artist in (SELECT mbid from artist WHERE `mbid` = '" +
                                     row[4].replace("'", "''") + "');")
                         # Check the database
                         try:
@@ -264,7 +270,7 @@ if cnx:
                     if tmpsong and tmpalbum and tmpartist:
                         tmpcursor = cnx.cursor()
 
-                        # ampache creates a separate row for 
+                        # ampache creates a separate row for
                         # song/album/artist for each play
                         checkforplay = ("SELECT date, object_type, object_id " +
                                         "from object_count " +
@@ -318,7 +324,7 @@ if cnx:
                         tmpcursor.execute(checkforplay)
 
                         for rows in tmpcursor:
-                            if str(row[0]) == str(rows[0]):
+                            if tmpdate == str(rows[0]):
                                 founddate = True
                             if tmpsong == rows[2]:
                                 foundsong = True
@@ -372,6 +378,8 @@ if cnx:
                     else:
                         notfoundlist.append(row)
                         notfoundcount += 1
+    # Clear songs of played status if they haven't been played
+    cursor.execute(clearnotplayed)
     # close connections
     csvfile.close()
     cnx.close()
