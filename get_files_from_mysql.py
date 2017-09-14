@@ -38,6 +38,7 @@ dbuser = None
 dbpass = None
 dbhost = None
 dbname = None
+myid = None
 
 # destination folder
 destination = None
@@ -101,9 +102,9 @@ elif cnx and os.path.isdir(destination):
     print('Connection Established\n')
     cursor = cnx.cursor()
     tmpquery = ("SELECT song.file FROM song " +
-                "WHERE song.id in " +
-                "(SELECT object_id FROM `user_flag` " +
-                "WHERE object_type = 'song' and user = 2)")
+                "WHERE song.id in (SELECT object_id FROM `user_flag` " +
+                "WHERE object_type = 'song' and " +
+                "user = " + myid + ")")
     try:
         cursor.execute(tmpquery)
     except mysql.connector.errors.ProgrammingError:
@@ -115,7 +116,6 @@ elif cnx and os.path.isdir(destination):
             if os.path.isfile(files):
                 tmpsource = files
                 tmpfile = os.path.dirname(files).split('/')[-2]
-                # noinspection PyTypeChecker
                 tmpfile = tmpfile + '-' + (os.path.basename(tmpsource)).replace(' - ', '-')
                 tmpdestin = os.path.join(destination, tmpfile)
                 for items in REPLACE:
@@ -132,6 +132,7 @@ elif cnx and os.path.isdir(destination):
                 print('\nnot copied\n', files)
 # cleanup
 if cnx and os.path.isdir(destination) and len(destinfiles) != 0:
+    print("\nChecking existing files for removals\n")
     for files in os.listdir(destination):
         if files not in destinfiles:
             print(files, ' does not belong here!')
