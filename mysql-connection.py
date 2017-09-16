@@ -76,12 +76,6 @@ else:
 # object_count will store each play for tracks
 # with separate rows for artist & album
 selectquery = "SELECT * FROM `object_count` ORDER BY `id` DESC"
-# the song table stores artist/album as id (from artist/album tables)
-songquery = "SELECT `id` FROM `song` WHERE "
-songalbumquery = "SELECT `album` FROM `song` WHERE "
-# get ID for song table
-albumquery = "SELECT `id` FROM `album` WHERE "
-artistquery = "SELECT `id` FROM `artist` WHERE "
 clearnotplayed = "UPDATE `song` SET played = 0 WHERE played = 1 and id not in (SELECT object_id from object_count)"
 
 notfoundcount = 0
@@ -176,7 +170,9 @@ if cnx:
                                         "FROM `song` INNER JOIN album ON `song`.`album` = `album`.`id` " +
                                         "INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "WHERE LOWER(`song`.`title`) = LOWER('" + rowtrack.replace("'", "''") +
-                                        "') AND LOWER(`album`.`name`) = LOWER('" + rowalbum.replace("'", "''") +
+                                        "') AND CASE WHEN album.prefix IS NOT NULL THEN " +
+                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
+                                        "END = LOWER('" + rowalbum.replace("'", "''") +
                                         "') AND CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
                                         "END = LOWER('" + rowartist.replace("'", "''") + "');")
@@ -245,7 +241,9 @@ if cnx:
                             tmpquery = ("SELECT `song`.`id`, `artist`.`id` " +
                                         "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "INNER JOIN album ON `song`.`album` = `album`.`id` " +
-                                        "WHERE LOWER(`album`.`name`) = LOWER('" + rowalbum.replace("'", "''") +
+                                        "WHERE CASE WHEN album.prefix IS NOT NULL THEN " +
+                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
+                                        "END = LOWER('" + rowalbum.replace("'", "''") +
                                         "') AND CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
                                         "END = LOWER('" + rowartist.replace("'", "''") + "');")
@@ -278,7 +276,9 @@ if cnx:
                             tmpquery = ("SELECT `song`.`id`, `album`.`id` " +
                                         "FROM `song` INNER JOIN album ON `song`.`album` = `album`.`id` " +
                                         "WHERE LOWER(`song`.`title`) = LOWER('" + rowtrack.replace("'", "''") +
-                                        "') AND LOWER(`album`.`name`) = LOWER('" + rowalbum.replace("'", "''") + "');")
+                                        "') AND CASE WHEN album.prefix IS NOT NULL THEN " +
+                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
+                                        "END = LOWER('" + rowalbum.replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -296,7 +296,7 @@ if cnx:
                                   '\t', tmpsong, '\t', tmpartist, '\t', tmpalbum)
                         # try individuals
                         if not tmpsong:
-                            tmpquery = (songquery + "LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
                                         "') AND artist in (SELECT id from artist WHERE CASE when prefix IS NOT NULL " +
                                         "THEN LOWER(CONCAT(prefix, ' ', name)) ELSE LOWER(name) END = LOWER('" +
                                         rowartist.replace("'", "''") + "')) AND " +
@@ -312,7 +312,7 @@ if cnx:
 
                         # Check for the album
                         if not tmpalbum:
-                            tmpquery = (albumquery + "LOWER(`name`) = LOWER('" + rowalbum.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE LOWER(`name`) = LOWER('" + rowalbum.replace("'", "''") +
                                         "') AND id in (SELECT album from song WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") +
                                         "')) AND album_artist in (SELECT id from artist WHERE LOWER(`name`) = LOWER('" +
@@ -326,7 +326,7 @@ if cnx:
                                 tmpalbum = rows[0]
                         # search ampache db for artist
                         if not tmpartist:
-                            tmpquery = (artistquery + "CASE WHEN artist.prefix IS NOT NULL THEN " +
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
                                         "END = LOWER('" + rowartist.replace("'", "''") + "')")
                             # Check the database
@@ -338,7 +338,7 @@ if cnx:
                                 tmpartist = rows[0]
                     # search ampache using mbid for artist
                     if not tmpartist and artistmbid:
-                            tmpquery = (artistquery + "`mbid` = '" + artistmbid + "'")
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE `mbid` = '" + artistmbid + "'")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -348,7 +348,7 @@ if cnx:
                                 tmpartist = rows[0]
                     # search ampache using name for artist
                     if not tmpartist and row[2]:
-                            tmpquery = (artistquery + "CASE WHEN artist.prefix IS NOT NULL THEN " +
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
                                         "END = LOWER('" + rowartist.replace("'", "''") + "')")
                             # Check the database
@@ -363,7 +363,7 @@ if cnx:
                     if not tmpalbum:
                         # search ampache using mbid for album
                         if albummbid and trackmbid:
-                            tmpquery = (albumquery + "`mbid` = '" + albummbid + "' AND " +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE `mbid` = '" + albummbid + "' AND " +
                                         "id in (SELECT album from song WHERE `mbid` = '" + trackmbid +
                                         "');")
                             # Check the database
@@ -376,7 +376,7 @@ if cnx:
                         # check using text instead
                         if not tmpalbum and tmpartist:
                             tmpcount = 0
-                            tmpquery = (albumquery + "`id` in (" + songalbumquery + "LOWER(`title`) = LOWER('" +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in (SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") + "')) AND album_artist in " +
                                         "(SELECT id from artist WHERE `id` = '" + str(tmpartist) + "');")
                             try:
@@ -393,7 +393,7 @@ if cnx:
                         # Look for albums under "Various Artist" tags
                         if not tmpalbum:
                             tmpcount = 0
-                            tmpquery = (albumquery + "`id` in (" + songalbumquery + "LOWER(`title`) = LOWER('" +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in (SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") + "')) AND album_artist in " +
                                         "(SELECT id from artist WHERE `name` = 'Various Artists');")
                             try:
@@ -409,7 +409,7 @@ if cnx:
                                 tmpcount += 1
                             # if you get a various artist you will want the song artist instead
                             tmpcount = 0
-                            tmpquery = (artistquery + "CASE WHEN artist.prefix IS NOT NULL THEN " +
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
                                         "END = LOWER('" + rowartist.replace("'", "''") + "')")
                             try:
@@ -425,7 +425,7 @@ if cnx:
                                 tmpcount += 1
                         # If you find the missing album you need to check for the song again as well
                         if tmpalbum:
-                            tmpquery = (songquery + "LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
                                         "') AND album in (SELECT id from album WHERE `id` = '" +
                                         str(tmpalbum) + "');")
                             try:
@@ -438,106 +438,46 @@ if cnx:
                     # if you find all three values in the database
                     # we have an exact match
                     if tmpsong and tmpalbum and tmpartist:
-                        tmpcursor = cnx.cursor()
 
                         # ampache creates a separate row for
                         # song/album/artist for each play
-                        checkforplay = ("SELECT date, object_type, object_id " +
-                                        "from object_count " +
-                                        "WHERE date = " + str(row[0]) + " AND " +
-                                        "user = " + myid)
+                        removeoldplay = ("DELETE FROM `" + dbname + "`.`object_count` " +
+                                          "WHERE date = " + tmpdate + " AND user = " + myid + ";")
 
                         # make sure the track is set to played in the song table
                         setplayed = ("UPDATE `song` SET `played` = 1" +
                                      " WHERE `id` = " + str(tmpsong) +
                                      " AND `played` = 0;")
+
                         # Queries to insert data
                         insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                       "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                       " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                      "VALUES ('0', 'song', '" + str(tmpsong) + "', '" + row[0] + "', '" +
-                                      myid + "'," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
+                                      "VALUES (0, 'song', " + str(tmpsong) + ", " + tmpdate + ", " +
+                                      myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
                         insertalbum = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                        "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                        " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                       "VALUES ('0', 'album', '" + str(tmpalbum) + "', '" + row[0] + "', '" +
-                                       myid + "'," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
+                                       "VALUES (0, 'album', " + str(tmpalbum) + ", " + tmpdate + ", " +
+                                       myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
                         insertartist = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                         "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                         " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                        "VALUES ('0', 'artist', '" + str(tmpartist) + "', '" + row[0] + "', '" +
-                                        myid + "'," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
-                        # Queries to update existing data
-                        updatesong = ("UPDATE `" + dbname + "`.`object_count` " +
-                                      "SET `object_id` = " + str(tmpsong) + " WHERE " +
-                                      "date = " + str(row[0]) + " AND object_type = 'song'" +
-                                      "AND `user` = " + str(myid) + ";")
-                        updatealbum = ("UPDATE `" + dbname + "`.`object_count` " +
-                                       "SET `object_id` = " + str(tmpalbum) + " WHERE " +
-                                       "date = " + str(row[0]) + " AND object_type = 'album'" +
-                                       "AND `user` = " + str(myid) + ";")
-                        updateartist = ("UPDATE `" + dbname + "`.`object_count` " +
-                                        "SET `object_id` = " + str(tmpartist) + " WHERE " +
-                                        "date = " + str(row[0]) + " AND object_type = 'artist'" +
-                                        "AND `user` = " + str(myid) + ";")
-                        # Queries to delete duplicates for the date
-                        removedupesong = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                          "WHERE date = " + str(row[0]) + " AND object_type = 'song' " +
-                                          "AND object_id != " + str(tmpsong) + ";")
-                        removedupealbum = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                           "WHERE date = " + str(row[0]) + " AND object_type = 'album' " +
-                                           "AND object_id != " + str(tmpalbum) + ";")
-                        removedupeartist = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                            "WHERE date = " + str(row[0]) + " AND object_type = 'artist' " +
-                                            "AND object_id != " + str(tmpartist) + ";")
+                                        "VALUES (0, 'artist', " + str(tmpartist) + ", " + tmpdate + ", " +
+                                        myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
 
-                        tmpcursor.execute(checkforplay)
+                        # remove old play
+                        tmpcursor = cnx.cursor()
+                        tmpcursor.execute(removeoldplay)
 
-                        for rows in tmpcursor:
-                            if tmpdate == str(rows[0]):
-                                founddate = True
-                            if tmpsong == rows[2]:
-                                foundsong = True
-                            if tmpalbum == rows[2]:
-                                foundalbum = True
-                            if tmpartist == rows[2]:
-                                foundartist = True
+                        # insert new play
+                        tmpcursor.execute(insertsong)
+                        tmpcursor.execute(insertalbum)
+                        tmpcursor.execute(insertartist)
 
-                        # database already has this play recorded
-                        if founddate and foundsong and foundalbum and foundartist:
-                            # Check for duplicate plays as you can't be listening to two songs at once.
-                            # Do it when a play is confirmed as we know that all other data is incorrect
-                            tmpcursor.execute(removedupesong)
-                            tmpcursor.execute(removedupealbum)
-                            tmpcursor.execute(removedupeartist)
-                            # make sure the song is marked as played
-                            tmpcursor.execute(setplayed)
-                            pass
-                        # database is missing this play completely
-                        elif not founddate and (tmpartist and tmpartist and tmpsong):
-                            tmpincursor = cnx.cursor()
-                            tmpincursor.execute(insertsong)
-                            tmpincursor.execute(insertalbum)
-                            tmpincursor.execute(insertartist)
-                            tmpincursor.execute(setplayed)
-                        # Found the date but not the right song
-                        elif founddate and (not foundartist or not foundalbum or not foundsong):
-                            tmpupcursor = cnx.cursor()
-                            # Because there are three rows there might be one missing so check.
-                            if foundsong:
-                                tmpupcursor.execute(updatesong)
-                            else:
-                                tmpupcursor.execute(insertsong)
-                            if foundalbum:
-                                tmpupcursor.execute(updatealbum)
-                            else:
-                                tmpupcursor.execute(insertalbum)
-                            if foundartist:
-                                tmpupcursor.execute(updateartist)
-                            else:
-                                tmpupcursor.execute(insertartist)
-                            # always check to set played status
-                            tmpupcursor.execute(setplayed)
+                        # make sure song is set to played
+                        tmpcursor.execute(setplayed)
+
     # Clear songs of played status if they haven't been played
     cursor.execute(clearnotplayed)
     # close connections
