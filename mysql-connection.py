@@ -438,11 +438,30 @@ if cnx:
                     # if you find all three values in the database
                     # we have an exact match
                     if tmpsong and tmpalbum and tmpartist:
+                        tmpsongsearch = None
+                        tmpartistsearch = None
+                        tmpalbumsearch = None
 
-                        # ampache creates a separate row for
-                        # song/album/artist for each play
+                        # check for existing data that matches the ID's
+                        tmpcursor = cnx.cursor()
+                        checkdata = ("SELECT `date`, `object_type`, `object_id`" +
+                                     "FROM `object_count`" +
+                                     "WHERE `date` = " + tmpdate + " AND user = " + myid + ";")
+                        try:
+                            tmpcursor.execute(checkdata)
+                        except mysql.connector.errors.ProgrammingError:
+                            print('ERROR WITH QUERY:\n' + checkdata)
+                        for rows in tmpcursor:
+                            if rows[1] == 'song' and rows[2] == str(tmpsong):
+                                tmpsongsearch = True
+                            if rows[1] == 'artist' and rows[2] == str(tmpartist):
+                                tmpartistsearch = True
+                            if rows[1] == 'album' and rows[2] == str(tmpalbum):
+                                tmpalbumsearch = True
+
+                        # remove old data if correct play not found
                         removeoldplay = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                          "WHERE date = " + tmpdate + " AND user = " + myid + ";")
+                                         "WHERE date = " + tmpdate + " AND user = " + myid + ";")
 
                         # make sure the track is set to played in the song table
                         setplayed = ("UPDATE `song` SET `played` = 1" +
@@ -465,18 +484,22 @@ if cnx:
                                         " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
                                         "VALUES (0, 'artist', " + str(tmpartist) + ", " + tmpdate + ", " +
                                         myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
+                        # ampache creates a separate row for
+                        # song/album/artist for each play
+                        if not tmpsongsearch and not tmpartistsearch and not tmpalbumsearch:
+                            # remove old play
+                            tmpcursor = cnx.cursor()
+                            tmpcursor.execute(removeoldplay)
 
-                        # remove old play
-                        tmpcursor = cnx.cursor()
-                        tmpcursor.execute(removeoldplay)
+                            # insert new play
+                            tmpcursor.execute(insertsong)
+                            tmpcursor.execute(insertalbum)
+                            tmpcursor.execute(insertartist)
 
-                        # insert new play
-                        tmpcursor.execute(insertsong)
-                        tmpcursor.execute(insertalbum)
-                        tmpcursor.execute(insertartist)
-
-                        # make sure song is set to played
-                        tmpcursor.execute(setplayed)
+                            # make sure song is set to played
+                            tmpcursor.execute(setplayed)
+                        else:
+                            print('found\n', row)
 
     # Clear songs of played status if they haven't been played
     cursor.execute(clearnotplayed)
