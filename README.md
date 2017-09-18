@@ -77,3 +77,6 @@ USAGE
 
 You can also set a specifiv file name using arguments
     python3 ./mysql-connection.py /d:dump.txt > output.txt
+
+I've added a new argument /all
+This will print all rows from the input file

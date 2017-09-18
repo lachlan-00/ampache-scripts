@@ -16,6 +16,7 @@
 import csv
 import os
 import sys
+import shutil
 import mysql.connector
 
 process = None
@@ -24,9 +25,11 @@ dbpass = None
 dbhost = None
 dbname = None
 csvfile = None
+printallrows = None
 settings = 'settings.csv'
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
+checkfile = ''
 
 # get dump file name from arguments
 for arguments in sys.argv:
@@ -40,9 +43,15 @@ for arguments in sys.argv:
         lovedfile = arguments[3:]
     elif os.path.isfile(lovedfile):
         process = 'loved'
+    if arguments[:4] == '/all':
+        printallrows = True
+    if arguments[:3] == '/c:':
+        process = 'check'
+        checkfile = arguments[3:]
+
 
 # get settings for database
-if os.path.isfile(settings):
+if os.path.isfile(settings) and not process == 'check':
     print('found settings file')
     with open(settings, 'r') as csvfile:
         openfile = csv.reader(csvfile)
@@ -73,6 +82,50 @@ else:
     # Ampache variables
     myid = '2'
 
+if os.path.isfile(checkfile) and process == 'check':
+    with open(checkfile, 'r') as readfile:
+        openfile = csv.reader(readfile, delimiter='\t', )
+        if os.path.isfile((checkfile + '.check')):
+            shutil.move((checkfile + '.check'), (checkfile + '.old'))
+        writefile = open((checkfile + '.check'), 'w')
+        for row in openfile:
+            try:
+                test = row[0]
+            except IndexError:
+                test = None
+            if test:
+                tmp0 = row[0]
+                tmp1 = row[1]
+                tmp2 = row[2]
+                tmp3 = row[3]
+                tmp4 = ''
+                tmp5 = ''
+                tmp6 = ''
+                try:
+                    if not row[4] == '':
+                        tmp4 = row[4]
+                except IndexError:
+                    # missing all the rows in the tsv
+                    pass
+                try:
+                    if not row[5] == '':
+                        tmp5 = row[5]
+                except IndexError:
+                    # missing all the rows in the tsv
+                    pass
+                try:
+                    if not row[6] == '':
+                        tmp6 = row[6]
+                except IndexError:
+                    # missing all the rows in the tsv
+                    pass
+                tmpline = (str(tmp0) + '\t' + str(tmp1) + '\t' + str(tmp2) + '\t' +
+                           str(tmp3) + '\t' + str(tmp4) + '\t' + str(tmp5) + '\t' + str(tmp6) + '\n')
+                writefile.write(tmpline)
+    writefile.close()
+    readfile.close()
+
+
 # object_count will store each play for tracks
 # with separate rows for artist & album
 selectquery = "SELECT * FROM `object_count` ORDER BY `id` DESC"
@@ -82,18 +135,18 @@ notfoundcount = 0
 notfoundlist = []
 
 cnx = None
-
-try:
-    cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                  host=dbhost, database=dbname)
-except mysql.connector.errors.InterfaceError:
+if not process == 'check':
     try:
-        cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
-                                                         password=dbpass,
-                                                         host=dbhost,
-                                                         database=dbname)
+        cnx = mysql.connector.connect(user=dbuser, password=dbpass,
+                                      host=dbhost, database=dbname)
     except mysql.connector.errors.InterfaceError:
-        pass
+        try:
+            cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
+                                                             password=dbpass,
+                                                             host=dbhost,
+                                                             database=dbname)
+        except mysql.connector.errors.InterfaceError:
+            pass
 if cnx:
     print('Connection Established\n')
     cursor = cnx.cursor()
@@ -135,12 +188,24 @@ if cnx:
                         rowartist = row[2]
                     if not row[3] == '':
                         rowalbum = row[3]
-                    if not row[4] == '':
-                        trackmbid = row[4]
-                    if not row[5] == '':
-                        artistmbid = row[5]
-                    if not row[6] == '':
-                        albummbid = row[6]
+                    try:
+                        if not row[4] == '':
+                            trackmbid = row[4]
+                    except IndexError:
+                        # missing all the rows in the tsv
+                        pass
+                    try:
+                        if not row[5] == '':
+                            artistmbid = row[5]
+                    except IndexError:
+                        # missing all the rows in the tsv
+                        pass
+                    try:
+                        if not row[6] == '':
+                            albummbid = row[6]
+                    except IndexError:
+                        # missing all the rows in the tsv
+                        pass
                     # search ampache db for song, album and artist
                     # Look for a musicbrainz ID before the text of the tags
                     # This should hopefully be more reliable if your tags change a lot
@@ -290,13 +355,16 @@ if cnx:
                                 if not tmpalbum:
                                     tmpalbum = str(rows[1])
                         # print rows with missing data so i can check
-                        if not tmpsong or not tmpartist or not tmpalbum:
+                        if not tmpsong or not tmpartist or not tmpalbum or printallrows:
                             print(str(row[0]), '\t', str(row[1]), '\t', str(row[2]), '\t', str(row[3]),
-                                  '\t', str(row[4]), '\t', str(row[5]), '\t', str(row[6]),
+                                  '\t', str(trackmbid).replace("None", ""),
+                                  '\t', str(artistmbid).replace("None", ""),
+                                  '\t', str(albummbid).replace("None", ""),
                                   '\t', tmpsong, '\t', tmpartist, '\t', tmpalbum)
                         # try individuals
                         if not tmpsong:
-                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" +
+                                        rowtrack.replace("'", "''") +
                                         "') AND artist in (SELECT id from artist WHERE CASE when prefix IS NOT NULL " +
                                         "THEN LOWER(CONCAT(prefix, ' ', name)) ELSE LOWER(name) END = LOWER('" +
                                         rowartist.replace("'", "''") + "')) AND " +
@@ -312,7 +380,8 @@ if cnx:
 
                         # Check for the album
                         if not tmpalbum:
-                            tmpquery = ("SELECT `id` FROM `album` WHERE LOWER(`name`) = LOWER('" + rowalbum.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE LOWER(`name`) = LOWER('" +
+                                        rowalbum.replace("'", "''") +
                                         "') AND id in (SELECT album from song WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") +
                                         "')) AND album_artist in (SELECT id from artist WHERE LOWER(`name`) = LOWER('" +
@@ -376,7 +445,8 @@ if cnx:
                         # check using text instead
                         if not tmpalbum and tmpartist:
                             tmpcount = 0
-                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in (SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in " +
+                                        "(SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") + "')) AND album_artist in " +
                                         "(SELECT id from artist WHERE `id` = '" + str(tmpartist) + "');")
                             try:
@@ -393,7 +463,8 @@ if cnx:
                         # Look for albums under "Various Artist" tags
                         if not tmpalbum:
                             tmpcount = 0
-                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in (SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
+                            tmpquery = ("SELECT `id` FROM `album` WHERE `id` in " +
+                                        "(SELECT `album` FROM `song` WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") + "')) AND album_artist in " +
                                         "(SELECT id from artist WHERE `name` = 'Various Artists');")
                             try:
@@ -425,7 +496,8 @@ if cnx:
                                 tmpcount += 1
                         # If you find the missing album you need to check for the song again as well
                         if tmpalbum:
-                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" + rowtrack.replace("'", "''") +
+                            tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" +
+                                        rowtrack.replace("'", "''") +
                                         "') AND album in (SELECT id from album WHERE `id` = '" +
                                         str(tmpalbum) + "');")
                             try:
@@ -506,5 +578,5 @@ if cnx:
     # close connections
     csvfile.close()
     cnx.close()
-else:
+elif not process == 'check':
     print('unable to connect to database')
