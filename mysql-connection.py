@@ -119,8 +119,9 @@ if os.path.isfile(checkfile) and process == 'check':
                 except IndexError:
                     # missing all the rows in the tsv
                     pass
-                tmpline = (str(tmp0) + '\t' + str(tmp1) + '\t' + str(tmp2) + '\t' +
-                           str(tmp3) + '\t' + str(tmp4) + '\t' + str(tmp5) + '\t' + str(tmp6) + '\n')
+                tmpline = ('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\n'.format(str(tmp0), str(tmp1),
+                                                                        str(tmp2), str(tmp3), str(tmp4),
+                                                                        str(tmp5), str(tmp6)))
                 writefile.write(tmpline)
     writefile.close()
     readfile.close()
@@ -356,11 +357,11 @@ if cnx:
                                     tmpalbum = str(rows[1])
                         # print rows with missing data so i can check
                         if not tmpsong or not tmpartist or not tmpalbum or printallrows:
-                            print(str(row[0]), '\t', str(row[1]), '\t', str(row[2]), '\t', str(row[3]),
-                                  '\t', str(trackmbid).replace("None", ""),
-                                  '\t', str(artistmbid).replace("None", ""),
-                                  '\t', str(albummbid).replace("None", ""),
-                                  '\t', tmpsong, '\t', tmpartist, '\t', tmpalbum)
+                            print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
+                                  '\t' + str(trackmbid).replace("None", "") +
+                                  '\t' + str(artistmbid).replace("None", "") +
+                                  '\t' + str(albummbid).replace("None", "") +
+                                  '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
                         # try individuals
                         if not tmpsong:
                             tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" +
