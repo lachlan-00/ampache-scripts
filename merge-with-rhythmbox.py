@@ -194,13 +194,17 @@ if cnx:
     playcursor = cnx.cursor()
     executionlist = []
     # total count of plays
-    playquery = ('SELECT DISTINCT song.title, artist.name, album.name, song.mbid, artist.mbid, album.mbid, COUNT(object_count.object_id) ' +
+    playquery = ('SELECT DISTINCT song.title, artist.name, album.name, ' +
+                 'CASE WHEN song.mbid IS NULL THEN \'\' ELSE song.mbid END as smbid, ' +
+                 'CASE WHEN artist.mbid IS NULL THEN \'\' ELSE artist.mbid END as ambid, ' +
+                 'CASE WHEN album.mbid IS NULL THEN \'\' ELSE album.mbid END as almbid, ' +
+                 'COUNT(object_count.object_id) ' +
                  'FROM object_count ' +
                  'INNER JOIN song on song.id = object_count.object_id AND object_count.object_type = \'song\' ' +
                  'LEFT JOIN artist on artist.id = song.artist ' +
                  'LEFT JOIN album on album.id = song.album ' +
                  'WHERE object_count.object_type = \'song\' ' +
-                 'GROUP BY song.title, artist.name, album.name, song.mbid, artist.mbid, album.mbid')
+                 'GROUP BY song.title, artist.name, album.name, smbid, ambid, almbid;')
     try:
         playcursor.execute(playquery)
         PROCESSPLAYS = True
@@ -253,7 +257,7 @@ if os.path.isfile(DB) and DBBACKUP:
                 data = {}
                 for info in entries:
                     if info.tag in ('title', 'artist', 'album', 'mb-trackid', 'mb-artistid', 'mb-albumid'):
-                        data[info.tag] = info.text.lower()
+                        data[info.tag] = set_ascii(info.text.lower())
             try:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s\t%(mb-artistid)s\t%(mb-albumid)s' % data)
             except KeyError:
@@ -288,21 +292,30 @@ if os.path.isfile(DB) and DBBACKUP:
 
                 # if the index is found, update the playcount
                 if idx:
+                    #print('entry found')
+                    #print(items[idx])
+                    #print(tmpcheck)
                     entry = items[idx]
+                    tmpplay = '0'
                     for info in entry:
                         if info.tag == 'play-count':
+                            tmpplay = str(info.text)
                             if info.text == str(row[6]):
                                 mergeplays = True
                             elif not info.text == str(row[6]):
-                                # print('Updating playcount for', row[0], 'to', row[6])
+                                print('Updating playcount for', row[0], 'from ' + tmpplay + ' to', row[6])
                                 tmpcount = int(info.text)
                                 info.text = str(row[6])
                                 mergeplays = True
                     if not mergeplays:
-                        # print('Inserting playcount for', row[0], 'as', row[6])
+                        print('Inserting playcount for', row[0], 'as', row[6])
                         insertplaycount = etree.SubElement(entry, 'play-count')
                         insertplaycount.text = str(row[6])
                         mergeplays = True
+                #if not mergeplays:
+                #    print('entry not found')
+                #    #print(row)
+                #    print(tmpcheck)
         print('Plays from mysql have been inserted into the database.\n')
         # Save changes
         print('saving changes')
@@ -325,12 +338,17 @@ if cnx:
     ratingcursor = cnx.cursor(buffered=True)
     executionlist = []
     # ampache ratings for all songs
-    ratingquery = ('SELECT DISTINCT song.title, artist.name, album.name, song.mbid, artist.mbid, album.mbid, rating.rating ' +
-                   'FROM rating ' +
-                   'INNER JOIN song on song.id = rating.object_id AND rating.object_type = \'song\' ' +
+    ratingquery = ('SELECT DISTINCT song.title, artist.name, album.name, ' +
+                   'CASE WHEN song.mbid IS NULL THEN \'\' ELSE song.mbid END as smbid, ' +
+                   'CASE WHEN artist.mbid IS NULL THEN \'\' ELSE artist.mbid END as ambid, ' +
+                   'CASE WHEN album.mbid IS NULL THEN \'\' ELSE album.mbid END as almbid, ' +
+                   'rating.rating ' +
+                   'FROM object_count ' +
+                   'INNER JOIN song on song.id = object_count.object_id AND object_count.object_type = \'song\' ' +
                    'LEFT JOIN artist on artist.id = song.artist ' +
                    'LEFT JOIN album on album.id = song.album ' +
-                   'WHERE rating.object_type = \'song\' ')
+                   'WHERE rating.object_type = \'song\' AND ' +
+                   'rating.user = ' + str(myid))
     try:
         ratingcursor.execute(ratingquery)
         PROCESSLOVED = True
@@ -382,7 +400,7 @@ if cnx:
                             idx = RBCACHE.index(tmpcheck)
                 # if the index is found, update the playcount
                 if idx:
-                    print(idx)
+                    #print(idx)
                     entry = items[idx]
                     for info in entry:
                         if info.tag == 'rating':
@@ -398,7 +416,11 @@ if cnx:
                         insertplaycount = etree.SubElement(entry, 'rating')
                         insertplaycount.text = str(row[5])
                         mergeplays = True
-        print('Loved from mysql have been rated 5 stars in the database.\n')
+                #if not mergeplays:
+                #    print('entry not found')
+                #    #print(row)
+                #    print(tmpcheck)
+        print('Ratings from mysql have been rated in the database.\n')
         # Save changes
         print('saving changes')
         output = etree.ElementTree(root)
