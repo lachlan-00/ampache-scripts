@@ -14,11 +14,11 @@
 """
 
 
-import codecs
+# import codecs
 import csv
 import os
 import shutil
-import sys
+# import sys
 import mysql.connector
 import urllib.parse
 import xml.etree.ElementTree as etree
@@ -28,8 +28,6 @@ import xml.etree.ElementTree as etree
 PROCESSPLAYS = None
 PROCESSLOVED = None
 WEHAVEMERGED = False
-DBBACKUP = None
-playcursor = None
 cnx = None
 playcursor = None
 ratingcursor = None
@@ -42,29 +40,13 @@ MERGELOVEDFILE = False
 OVERWRITEDUMP = False
 
 # Default file names
-#PLAYS = 'dump.txt'
-LOVED = 'loved.txt'
-PLAYLOG = 'mergeplays-playcount-PROCESSED.txt'
-LOVELOG = 'mergeplays-loved-PROCESSED.txt'
-settings = os.path.join(os.path.dirname(os.path.realpath(__file__)) ,'settings.csv')
+settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
 
 # Default paths for rhythmbox & the user
 HOMEFOLDER = os.getenv('HOME')
 PATH = '/.local/share/rhythmbox/'
 DB = (HOMEFOLDER + PATH + 'rhythmdb.xml')
 DBBACKUP = (HOMEFOLDER + PATH + 'rhythmdb-backup-merge.xml')
-
-# get dump file name from arguments
-for arguments in sys.argv:
-    #if arguments[:3] == '/d:':
-    #    print('\nUsing cmdline plays file ' + arguments[3:] + '\n')
-    #    PLAYS = arguments[3:]
-    if arguments[:3] == '/l:':
-        print('\nUsing cmdline loved file ' + arguments[3:] + '\n')
-        LOVED = arguments[3:]
-    if arguments.lower() == '/overwrite':
-        print('\nReplacing dump with processed file\n')
-        OVERWRITEDUMP = True
 
 FIND = None
 REPLACE = None
@@ -105,24 +87,6 @@ else:
     # Ampache variables
     myid = '2'
 
-# decide whether to process
-#if os.path.isfile(PLAYS):
-#    PROCESSPLAYS = True
-#    # Don't overwrite yourself
-#    if PLAYS == PLAYLOG:
-#        PLAYLOG = PLAYLOG + '.tmp'
-if os.path.isfile(LOVED):
-    PROCESSLOVED = True
-    if LOVED == LOVELOG:
-        LOVELOG = LOVELOG + '.tmp'
-
-# clear output files if they exist
-if os.path.isfile(PLAYLOG):
-    TMPFILE = codecs.open(PLAYLOG, "w", "utf8")
-    TMPFILE.close()
-if os.path.isfile(LOVELOG):
-    TMPFILE = codecs.open(LOVELOG, "w", "utf8")
-    TMPFILE.close()
 
 urlascii = ('%', "#", ';', ' ', '"', '<', '>', '?', '[', '\\',
             "]", '^', '`', '{', '|', '}', '€', '‚', 'ƒ', '„',
@@ -220,6 +184,7 @@ if cnx:
     except mysql.connector.errors.ProgrammingError:
         print('ERROR WITH QUERY:\n' + playquery)
 
+
 # Replace Characters with UTF code value
 def set_url(string):
     """ Set RhythmDB style string """
@@ -231,8 +196,9 @@ def set_url(string):
         count = count + 1
     return string
 
+
 # Replace UTF Characters with ascii equivilant
-def set_asciiFull(string):
+def set_asciifull(string):
     """ Set regular path style string """
     count = 0
     string = urllib.parse.unquote(string)
@@ -240,6 +206,7 @@ def set_asciiFull(string):
         string = string.replace(urlcode[count], urlascii[count])
         count = count + 1
     return string
+
 
 def set_ascii(string):
     """ Change unicode codes back to asscii for RhythmDB """
@@ -249,6 +216,7 @@ def set_ascii(string):
                                 rbdb_itm[count])
         count = count + 1
     return string
+
 
 # only start if the database has been backed up.
 if PROCESSPLAYS or PROCESSLOVED:
@@ -260,6 +228,7 @@ if PROCESSPLAYS or PROCESSLOVED:
         DBBACKUP = False
     except PermissionError:
         DBBACKUP = False
+
 
 # only process id db found and backup created.
 if os.path.isfile(DB) and DBBACKUP:
@@ -280,11 +249,12 @@ if os.path.isfile(DB) and DBBACKUP:
                 filedata = {}
                 for info in entries:
                     if info.tag in ('title', 'artist', 'album', 'mb-trackid', 'mb-artistid', 'mb-albumid'):
-                        data[info.tag] = set_asciiFull(info.text.lower())
-                    if info.tag in ('location'):
-                        filedata[info.tag] = set_asciiFull(info.text).lower().replace('file://', '')
+                        data[info.tag] = set_asciifull(info.text.lower())
+                    if info.tag in 'location':
+                        filedata[info.tag] = set_asciifull(info.text).lower().replace('file://', '')
             try:
-                RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s\t%(mb-artistid)s\t%(mb-albumid)s' % data)
+                RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s' +
+                               '\t%(mb-artistid)s\t%(mb-albumid)s' % data)
             except KeyError:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t\t\t' % data)
             RBFILECACHE.append('%(location)s' % filedata)
@@ -312,19 +282,19 @@ if os.path.isfile(DB) and DBBACKUP:
                     test = None
                 if test:
                     if not mergeplays:
+                        # Check for a match using the id3 tags
                         tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
                                     str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
                                     str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
                         if tmpcheck in RBCACHE:
                             idx = RBCACHE.index(tmpcheck)
                     if not idx:
+                        # When you can't match tags, check filename
                         if FIND and REPLACE:
-                            tmpfilecheck = str(row[7].lower()).replace(FIND,REPLACE)
+                            tmpfilecheck = str(row[7].lower()).replace(FIND, REPLACE)
                         else:
                             tmpfilecheck = str(row[7].lower())
                         if tmpfilecheck in RBFILECACHE:
-                            #print('fallen back to filename')
-                            #print(tmpfilecheck)
                             idx = RBFILECACHE.index(tmpfilecheck)
                 # if the index is found, update the playcount
                 if idx:
@@ -346,7 +316,7 @@ if os.path.isfile(DB) and DBBACKUP:
                         insertplaycount = etree.SubElement(entry, 'play-count')
                         insertplaycount.text = str(row[6])
                         mergeplays = True
-                #if not mergeplays:
+                # if not mergeplays:
                 #    print('entry not found')
                 #    #print(row)
                 #    print(tmpcheck)
@@ -364,11 +334,6 @@ else:
     # there was a problem with the command
     print('FILE NOT FOUND.\nUnable to process\n')
 
-
-    print('Opening rhythmdb for ratings...\n')
-    root = etree.parse(os.path.expanduser(DB)).getroot()
-    items = [s for s in root.getiterator("entry")
-             if s.attrib.get('type') == 'song']
 
 if cnx:
     print('Connection Established\n')
@@ -408,11 +373,12 @@ if cnx:
                 filedata = {}
                 for info in entries:
                     if info.tag in ('title', 'artist', 'album', 'mb-trackid', 'mb-artistid', 'mb-albumid'):
-                        data[info.tag] = set_asciiFull(info.text.lower())
-                    if info.tag in ('location'):
-                        filedata[info.tag] = set_asciiFull(info.text).lower().replace('file://', '')
+                        data[info.tag] = set_asciifull(info.text.lower())
+                    if info.tag in 'location':
+                        filedata[info.tag] = set_asciifull(info.text).lower().replace('file://', '')
             try:
-                RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s\t%(mb-artistid)s\t%(mb-albumid)s' % data)
+                RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s' +
+                               '\t%(mb-artistid)s\t%(mb-albumid)s' % data)
             except KeyError:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t\t\t' % data)
             RBFILECACHE.append('%(location)s' % filedata)
@@ -434,45 +400,36 @@ if cnx:
                 tmpcheck = None
                 tmpfilecheck = None
                 # using the last.fm data check for the same song in rhythmbox
-                # for items in row:
-                # print(items)
                 try:
                     test = row[0]
                 except IndexError:
                     test = None
                 if test:
                     if not mergeplays:
-                        # match rows with cache
+                        # Check for a match using the id3 tags
                         tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
                                     str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
                                     str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
-                        # print(tmpcheck)
                         if tmpcheck in RBCACHE:
                             idx = RBCACHE.index(tmpcheck)
                     if not idx:
+                        # When you can't match tags, check filename
                         if FIND and REPLACE:
-                            tmpfilecheck = str(row[7].lower()).replace(FIND,REPLACE)
+                            tmpfilecheck = str(row[7].lower()).replace(FIND, REPLACE)
                         else:
                             tmpfilecheck = str(row[7].lower())
                         if tmpfilecheck in RBFILECACHE:
-                            # print('fallen back to filename')
                             idx = RBFILECACHE.index(tmpfilecheck)
                 # if the index is found, update the playcount
                 if idx:
-                    #print(idx)
+                    # print(idx)
                     entry = items[idx]
                     for info in entry:
                         if info.tag == 'rating':
-                            # print(row)
                             if str(info.text) == str(row[6]):
                                 mergeplays = True
                             elif not str(info.text) == str(row[6]):
                                 changemade = True
-                                #print(info.text)
-                                #print(type(info.text))
-                                #print(row[6])
-                                #print(type(row[6]))
-                                #print('Updating rating for', row[0], 'from' + str(info.text) + 'to', row[6])
                                 info.text = str(row[6])
                                 mergeplays = True
                     if not mergeplays:
@@ -481,7 +438,7 @@ if cnx:
                         insertplaycount = etree.SubElement(entry, 'rating')
                         insertplaycount.text = str(row[6])
                         mergeplays = True
-                #if not mergeplays:
+                # if not mergeplays:
                 #    print('entry not found')
                 #    #print(row)
                 #    print(tmpcheck)
@@ -499,4 +456,4 @@ else:
     # there was a problem with the command
     print('FILE NOT FOUND.\nUnable to process\n')
 
-print('Done')
+print('Done\n')
