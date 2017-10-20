@@ -20,6 +20,7 @@ import os
 import shutil
 import sys
 import mysql.connector
+import urllib.parse
 import xml.etree.ElementTree as etree
 
 
@@ -65,6 +66,9 @@ for arguments in sys.argv:
         print('\nReplacing dump with processed file\n')
         OVERWRITEDUMP = True
 
+FIND = None
+REPLACE = None
+
 # get settings for database
 if os.path.isfile(settings):
     print('found settings file')
@@ -86,6 +90,10 @@ if os.path.isfile(settings):
                     dbname = row[1]
                 elif row[0] == 'myid':
                     myid = row[1]
+                elif row[0] == 'find':
+                    FIND = row[1]
+                elif row[0] == 'replace':
+                    REPLACE = row[1]
     csvfile.close()
 else:
     # Database variables
@@ -198,7 +206,8 @@ if cnx:
                  'CASE WHEN song.mbid IS NULL THEN \'\' ELSE song.mbid END as smbid, ' +
                  'CASE WHEN artist.mbid IS NULL THEN \'\' ELSE artist.mbid END as ambid, ' +
                  'CASE WHEN album.mbid IS NULL THEN \'\' ELSE album.mbid END as almbid, ' +
-                 'COUNT(object_count.object_id) ' +
+                 'COUNT(object_count.object_id), ' +
+                 'song.file ' +
                  'FROM object_count ' +
                  'INNER JOIN song on song.id = object_count.object_id AND object_count.object_type = \'song\' ' +
                  'LEFT JOIN artist on artist.id = song.artist ' +
@@ -216,7 +225,19 @@ def set_url(string):
     """ Set RhythmDB style string """
     count = 0
     while count < len(urlascii):
-        string = string.replace(urlascii[count], urlcode[count])
+        if urlascii[count] in string:
+            while urlascii[count] in string:
+                string = string.replace(urlascii[count], urlcode[count])
+        count = count + 1
+    return string
+
+# Replace UTF Characters with ascii equivilant
+def set_asciiFull(string):
+    """ Set regular path style string """
+    count = 0
+    string = urllib.parse.unquote(string)
+    while count < len(urlascii):
+        string = string.replace(urlcode[count], urlascii[count])
         count = count + 1
     return string
 
@@ -240,43 +261,50 @@ if PROCESSPLAYS or PROCESSLOVED:
     except PermissionError:
         DBBACKUP = False
 
-    # open the database
-    print('Opening rhythmdb...\n')
-    root = etree.parse(os.path.expanduser(DB)).getroot()
-    items = [s for s in root.getiterator("entry")
-             if s.attrib.get('type') == 'song']
-
 # only process id db found and backup created.
 if os.path.isfile(DB) and DBBACKUP:
     print('Connection Established\n')
     # search for plays by artist, track AND album
-    if PROCESSPLAYS and playcursor:
+    # open the database
+    print('Opening rhythmdb for play counts...\n')
+    root = etree.parse(os.path.expanduser(DB)).getroot()
+    items = [s for s in root.getiterator("entry")
+             if s.attrib.get('type') == 'song']
+    if items and cnx:
         RBCACHE = []
+        RBFILECACHE = []
+        print('Building song data for play counts...\n')
         for entries in items:
             if entries.attrib.get('type') == 'song':
                 data = {}
+                filedata = {}
                 for info in entries:
                     if info.tag in ('title', 'artist', 'album', 'mb-trackid', 'mb-artistid', 'mb-albumid'):
-                        data[info.tag] = set_ascii(info.text.lower())
+                        data[info.tag] = set_asciiFull(info.text.lower())
+                    if info.tag in ('location'):
+                        filedata[info.tag] = set_asciiFull(info.text).lower().replace('file://', '')
             try:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s\t%(mb-artistid)s\t%(mb-albumid)s' % data)
             except KeyError:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t\t\t' % data)
+            RBFILECACHE.append('%(location)s' % filedata)
         WEHAVEMERGED = True
         print('Processing mysql play counts\n')
         if playcursor:
+            changemade = False
             for row in playcursor:
                 tmprow = []
                 tmpsong = None
                 tmpartist = None
                 tmpalbum = None
                 tmpentry = None
-                tmpcount = None
                 mergeplays = False
                 foundartist = None
                 foundalbum = None
                 foundsong = None
                 idx = None
+                tmpcheck = None
+                tmpfilecheck = None
                 # using the last.fm data check for the same song in rhythmbox
                 try:
                     test = row[0]
@@ -289,25 +317,31 @@ if os.path.isfile(DB) and DBBACKUP:
                                     str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
                         if tmpcheck in RBCACHE:
                             idx = RBCACHE.index(tmpcheck)
-
+                    if not idx:
+                        if FIND and REPLACE:
+                            tmpfilecheck = str(row[7].lower()).replace(FIND,REPLACE)
+                        else:
+                            tmpfilecheck = str(row[7].lower())
+                        if tmpfilecheck in RBFILECACHE:
+                            #print('fallen back to filename')
+                            #print(tmpfilecheck)
+                            idx = RBFILECACHE.index(tmpfilecheck)
                 # if the index is found, update the playcount
                 if idx:
-                    #print('entry found')
-                    #print(items[idx])
-                    #print(tmpcheck)
                     entry = items[idx]
                     tmpplay = '0'
                     for info in entry:
                         if info.tag == 'play-count':
                             tmpplay = str(info.text)
-                            if info.text == str(row[6]):
+                            if str(info.text) == str(row[6]):
                                 mergeplays = True
-                            elif not info.text == str(row[6]):
+                            elif not str(info.text) == str(row[6]):
+                                changemade = True
                                 print('Updating playcount for', row[0], 'from ' + tmpplay + ' to', row[6])
-                                tmpcount = int(info.text)
                                 info.text = str(row[6])
                                 mergeplays = True
                     if not mergeplays:
+                        changemade = True
                         print('Inserting playcount for', row[0], 'as', row[6])
                         insertplaycount = etree.SubElement(entry, 'play-count')
                         insertplaycount.text = str(row[6])
@@ -316,11 +350,14 @@ if os.path.isfile(DB) and DBBACKUP:
                 #    print('entry not found')
                 #    #print(row)
                 #    print(tmpcheck)
-        print('Plays from mysql have been inserted into the database.\n')
-        # Save changes
-        print('saving changes')
-        output = etree.ElementTree(root)
-        output.write(os.path.expanduser(DB), encoding="utf-8")
+            if changemade:
+                print('Plays from mysql have been inserted into the database.\n')
+                # Save changes
+                print('saving changes')
+                output = etree.ElementTree(root)
+                output.write(os.path.expanduser(DB), encoding="utf-8")
+            else:
+                print('No play counts changed')
     else:
         print('no play data found\n')
 else:
@@ -328,7 +365,7 @@ else:
     print('FILE NOT FOUND.\nUnable to process\n')
 
 
-    print('Opening rhythmdb...\n')
+    print('Opening rhythmdb for ratings...\n')
     root = etree.parse(os.path.expanduser(DB)).getroot()
     items = [s for s in root.getiterator("entry")
              if s.attrib.get('type') == 'song']
@@ -342,9 +379,10 @@ if cnx:
                    'CASE WHEN song.mbid IS NULL THEN \'\' ELSE song.mbid END as smbid, ' +
                    'CASE WHEN artist.mbid IS NULL THEN \'\' ELSE artist.mbid END as ambid, ' +
                    'CASE WHEN album.mbid IS NULL THEN \'\' ELSE album.mbid END as almbid, ' +
-                   'rating.rating ' +
-                   'FROM object_count ' +
-                   'INNER JOIN song on song.id = object_count.object_id AND object_count.object_type = \'song\' ' +
+                   'rating.rating, ' +
+                   'song.file ' +
+                   'FROM rating ' +
+                   'INNER JOIN song on song.id = rating.object_id AND rating.object_type = \'song\' ' +
                    'LEFT JOIN artist on artist.id = song.artist ' +
                    'LEFT JOIN album on album.id = song.album ' +
                    'WHERE rating.object_type = \'song\' AND ' +
@@ -352,39 +390,52 @@ if cnx:
     try:
         ratingcursor.execute(ratingquery)
         PROCESSLOVED = True
-    except mysql.connector.errors.ProgrammingError:
+    except mysql.connector.errors.ProgrammingError as e:
         print('ERROR WITH QUERY:\n' + ratingquery)
+        print(e)
 
-    if PROCESSLOVED and ratingcursor:
+    if PROCESSLOVED and ratingcursor and DBBACKUP:
+        print('Opening rhythmdb...\n')
+        root = etree.parse(os.path.expanduser(DB)).getroot()
+        items = [s for s in root.getiterator("entry")
+                 if s.attrib.get('type') == 'song']
         RBCACHE = []
+        RBFILECACHE = []
+        print('Building song data for ratings...\n')
         for entries in items:
             if entries.attrib.get('type') == 'song':
                 data = {}
+                filedata = {}
                 for info in entries:
                     if info.tag in ('title', 'artist', 'album', 'mb-trackid', 'mb-artistid', 'mb-albumid'):
-                        data[info.tag] = info.text.lower()
+                        data[info.tag] = set_asciiFull(info.text.lower())
+                    if info.tag in ('location'):
+                        filedata[info.tag] = set_asciiFull(info.text).lower().replace('file://', '')
             try:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t%(mb-trackid)s\t%(mb-artistid)s\t%(mb-albumid)s' % data)
             except KeyError:
                 RBCACHE.append('%(title)s\t%(artist)s\t%(album)s\t\t\t' % data)
+            RBFILECACHE.append('%(location)s' % filedata)
         WEHAVEMERGED = True
         print('Processing mysql track ratings\n')
         if ratingcursor:
+            changemade = False
             for row in ratingcursor:
                 tmprow = []
                 tmpsong = None
                 tmpartist = None
                 tmpalbum = None
                 tmpentry = None
-                tmpcount = None
                 mergeplays = False
                 foundartist = None
                 foundalbum = None
                 foundsong = None
                 idx = None
+                tmpcheck = None
+                tmpfilecheck = None
                 # using the last.fm data check for the same song in rhythmbox
-                #for items in row:
-                #print(items)
+                # for items in row:
+                # print(items)
                 try:
                     test = row[0]
                 except IndexError:
@@ -395,9 +446,17 @@ if cnx:
                         tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
                                     str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
                                     str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
-                        #print(tmpcheck)
+                        # print(tmpcheck)
                         if tmpcheck in RBCACHE:
                             idx = RBCACHE.index(tmpcheck)
+                    if not idx:
+                        if FIND and REPLACE:
+                            tmpfilecheck = str(row[7].lower()).replace(FIND,REPLACE)
+                        else:
+                            tmpfilecheck = str(row[7].lower())
+                        if tmpfilecheck in RBFILECACHE:
+                            # print('fallen back to filename')
+                            idx = RBFILECACHE.index(tmpfilecheck)
                 # if the index is found, update the playcount
                 if idx:
                     #print(idx)
@@ -405,26 +464,35 @@ if cnx:
                     for info in entry:
                         if info.tag == 'rating':
                             # print(row)
-                            if info.text == str(row[5]):
+                            if str(info.text) == str(row[6]):
                                 mergeplays = True
-                            elif not info.text == row[5]:
-                                print('Updating rating for', row[0], 'to', row[5])
-                                info.text = str(row[5])
+                            elif not str(info.text) == str(row[6]):
+                                changemade = True
+                                #print(info.text)
+                                #print(type(info.text))
+                                #print(row[6])
+                                #print(type(row[6]))
+                                #print('Updating rating for', row[0], 'from' + str(info.text) + 'to', row[6])
+                                info.text = str(row[6])
                                 mergeplays = True
                     if not mergeplays:
-                        print('Inserting rating for', row[0], 'as', row[5])
+                        changemade = True
+                        print('Inserting rating for', row[0], 'as', row[6])
                         insertplaycount = etree.SubElement(entry, 'rating')
-                        insertplaycount.text = str(row[5])
+                        insertplaycount.text = str(row[6])
                         mergeplays = True
                 #if not mergeplays:
                 #    print('entry not found')
                 #    #print(row)
                 #    print(tmpcheck)
-        print('Ratings from mysql have been rated in the database.\n')
-        # Save changes
-        print('saving changes')
-        output = etree.ElementTree(root)
-        output.write(os.path.expanduser(DB), encoding="utf-8")
+            if changemade:
+                print('Ratings from mysql have been rated in the database.\n')
+                # Save changes
+                print('saving changes')
+                output = etree.ElementTree(root)
+                output.write(os.path.expanduser(DB), encoding="utf-8")
+            else:
+                print('No Ratings were updated.')
     else:
         print('no rating data found\n')
 else:
