@@ -67,13 +67,6 @@ https://gitorious.org/fmthings/lasttolibre
 https://github.com/lachlan-00/lastscrape-gui/blob/master/lastexport3.py
 
 
-ABOUT merge-with-rhythmbox.py
------------------------------
-Now that last.fm data is merged and you're using ampache as a primary source of truth for playback history you can use it elsewhere.
-
-This script will merge totals and ratings (1-5 stars) back into rhythmbox so you can always be up to date no matter the library in use.
-
-
 USAGE
 -----
 This script that will parse a text file and add each play to the ampache database.
@@ -91,3 +84,11 @@ You can also set a specifiv file name using arguments
 
 I've added a new argument /all
 This will print all rows from the input file
+
+
+ABOUT merge-with-rhythmbox.py
+-----------------------------
+Now that last.fm data is merged and you're using ampache as a primary source of truth for playback history you can use it elsewhere.
+
+This script will merge totals and ratings (1-5 stars) back into rhythmbox so you can always be up to date no matter the library in use.
+
