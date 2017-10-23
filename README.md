@@ -1,13 +1,17 @@
 # ampache-scripts
 GPLv3 <http://www.gnu.org/licenses/>
 
-There are two scripts in the project with separate uses:
+There are three scripts in the project with separate uses:
  * mysql-connection.py
      Insert data from Last.fm into your ampache database
 
  * get_files_from_mysql.py
      Query ampache database for top rated songs and copy
      to desired path
+
+ * merge-with-rhythmbox.py
+     Insert play totals and ratings into rhythmbox using
+     Ampache queries as a master source.
 
 REQUIREMENTS
 ------------
@@ -61,6 +65,13 @@ https://gitorious.org/fmthings/lasttolibre
 
 (the project seems dead now so i'm going to update it to python3 when i have time to do the rest)
 https://github.com/lachlan-00/lastscrape-gui/blob/master/lastexport3.py
+
+
+ABOUT merge-with-rhythmbox.py
+-----------------------------
+Now that last.fm data is merged and you're using ampache as a primary source of truth for playback history you can use it elsewhere.
+
+This script will merge totals and ratings (1-5 stars) back into rhythmbox so you can always be up to date no matter the library in use.
 
 
 USAGE
