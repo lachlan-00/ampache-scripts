@@ -183,11 +183,12 @@ if os.path.isfile(DB) and DBBACKUP:
                 idx = None
                 tmpcheck = None
                 tmpfilecheck = None
-                # using the last.fm data check for the same song in rhythmbox
+                # Require a minimum of Date, Title, Artist, Album
                 try:
-                    test = row[0]
+                    test = [row[0], row[1], row[2], row[3]]
                 except IndexError:
                     test = None
+                # Using the last.fm data check for the same song in rhythmbox
                 if test:
                     if not mergeplays:
                         # Check for a match using the id3 tags
@@ -305,11 +306,12 @@ if cnx:
                 idx = None
                 tmpcheck = None
                 tmpfilecheck = None
-                # using the last.fm data check for the same song in rhythmbox
+                # Require a minimum of Date, Title, Artist, Album
                 try:
-                    test = row[0]
+                    test = [row[0], row[1], row[2], row[3]]
                 except IndexError:
                     test = None
+                # Using the last.fm data check for the same song in rhythmbox
                 if test:
                     if not mergeplays:
                         # Check for a match using the id3 tags
