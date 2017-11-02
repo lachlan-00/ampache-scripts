@@ -26,7 +26,7 @@ dbhost = None
 dbname = None
 csvfile = None
 printallrows = None
-settings = os.path.join(os.path.dirname(os.path.realpath(__file__)) ,'settings.csv')
+settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
 checkfile = ''
@@ -430,7 +430,7 @@ if cnx:
                                 print('ERROR WITH QUERY:\n' + tmpquery)
                             for rows in cursor:
                                 tmpartist = rows[0]
-                        # If you're still missing the album but have an artist and a song try to find single album matches
+                        # If you're still missing the album but have an artist and a song try to find single album
                         # It's possible for last.fm exports to be missing album details especially for older plays
                         if not tmpalbum:
                             # search ampache using mbid for album
@@ -483,9 +483,10 @@ if cnx:
                                     tmpcount += 1
                                 # if you get a various artist you will want the song artist instead
                                 tmpcount = 0
-                                tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                            "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                            "END = LOWER('" + rowartist.replace("'", "''") + "')")
+                                tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL " +
+                                            "THEN LOWER(CONCAT(artist.prefix, ' ', artist.name)) " +
+                                            "ELSE LOWER(artist.name)  END = LOWER('" +
+                                            rowartist.replace("'", "''") + "')")
                                 try:
                                     cursor.execute(tmpquery)
                                 except mysql.connector.errors.ProgrammingError:
