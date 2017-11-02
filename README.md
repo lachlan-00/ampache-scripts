@@ -22,18 +22,10 @@ python3-mysql.connector
 NEWS
 ----
 
-I've added a new script. (get_files_from_mysql.py) i use this to copy my 5 star tracks to USB.
+merge-with-rhythmbox is now two-way syncing ratings!
 
-As of 2017-02-13 mysql-connection can be considered stable.
-
-I'm satisfied that only the correct data will be updated and only incorrect or duplicate rows will be removed.
-
-There are multiple checks in place to ensure data is written when all checks are met.
-
-In the current version plays will be skipped if they can't be identified or filtered to an individual song/album/artist.
-This is to ensure that all data is correct on instertion to the DB.
-
-In my testing the majority of duplicates are mispelled or are songs without an album that are duplicated at least once in my collection.
+If you set a rating in rhythmbox it will be set on ampache when no rating is found
+(Ampache is still the master source so it won't overwrite existing ratings)
 
 
 ABOUT get_files_from_mysql.py
@@ -91,4 +83,6 @@ ABOUT merge-with-rhythmbox.py
 Now that last.fm data is merged and you're using ampache as a primary source of truth for playback history you can use it elsewhere.
 
 This script will merge totals and ratings (1-5 stars) back into rhythmbox so you can always be up to date no matter the library in use.
+
+The script will also insert ratings you have made when no rating exists in ampache.
 
