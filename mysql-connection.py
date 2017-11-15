@@ -357,13 +357,6 @@ if cnx:
                                     tmpsong = str(rows[0])
                                 if not tmpalbum:
                                     tmpalbum = str(rows[1])
-                        # print rows with missing data so i can check
-                        if not tmpsong or not tmpartist or not tmpalbum or printallrows:
-                            print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
-                                  '\t' + str(trackmbid).replace("None", "") +
-                                  '\t' + str(artistmbid).replace("None", "") +
-                                  '\t' + str(albummbid).replace("None", "") +
-                                  '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
                         # try individuals
                         if not tmpsong:
                             tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" +
@@ -397,6 +390,32 @@ if cnx:
                             for rows in cursor:
                                 tmpalbum = rows[0]
                         # search ampache db for artist
+                        if (not tmpartist) and (trackmbid and albummbid):
+                            tmpquery = ("SELECT `artist`.`id` " +
+                                        "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
+                                        "INNER JOIN album ON `song`.`album` = `album`.`id` " +
+                                        "WHERE `song`.`mbid` = '" + trackmbid + "' AND " +
+                                        "`album`.`mbid` = '" + albummbid + "';")
+                            # Check the database
+                            try:
+                                cursor.execute(tmpquery)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            for rows in cursor:
+                                tmpartist = str(rows[0])
+                        if (not tmpartist) and (rowtrack and rowalbum):
+                            tmpquery = ("SELECT `artist`.`id` " +
+                                        "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
+                                        "INNER JOIN album ON `song`.`album` = `album`.`id` " +
+                                        "WHERE `song`.`title` = '" + str(rowtrack).replace("'", "''") + "' AND " +
+                                        "`album`.`name` = '" + str(rowalbum).replace("'", "''") + "';")
+                            # Check the database
+                            try:
+                                cursor.execute(tmpquery)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            for rows in cursor:
+                                tmpartist = str(rows[0])
                         if not tmpartist:
                             tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
                                         "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
@@ -511,6 +530,13 @@ if cnx:
                                 for rows in cursor:
                                     tmpsong = rows[0]
 
+                        # print rows with missing data so i can check
+                        if not tmpsong or not tmpartist or not tmpalbum or printallrows:
+                            print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
+                                  '\t' + str(trackmbid).replace("None", "") +
+                                  '\t' + str(artistmbid).replace("None", "") +
+                                  '\t' + str(albummbid).replace("None", "") +
+                                  '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
                     # if you find all three values in the database
                     # we have an exact match
                     if tmpsong and tmpalbum and tmpartist:
