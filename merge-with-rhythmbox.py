@@ -244,13 +244,6 @@ class MERGEAMPBOX:
                 # Using the last.fm data check for the same song in rhythmbox
                 if test:
                     if not mergeplays:
-                        # Check for a match using the id3 tags
-                        tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
-                                    str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
-                                    str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
-                        if tmpcheck in self.rbcache:
-                            idx = self.rbcache.index(tmpcheck)
-                    if not idx:
                         # When you can't match tags, check filename
                         if self.find and self.replace:
                             tmpfilecheck = str(row[7].lower()).replace(self.find, self.replace)
@@ -258,6 +251,13 @@ class MERGEAMPBOX:
                             tmpfilecheck = str(row[7].lower())
                         if tmpfilecheck in self.rbfilecache:
                             idx = self.rbfilecache.index(tmpfilecheck)
+                    if not idx:
+                        # Check for a match using the id3 tags
+                        tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
+                                    str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
+                                    str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
+                        if tmpcheck in self.rbcache:
+                            idx = self.rbcache.index(tmpcheck)
                 # if the index is found, update the database
                 if idx:
                     entry = self.items[idx]
