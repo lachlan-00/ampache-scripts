@@ -180,9 +180,14 @@ if cnx:
                     test = row[0]
                 except IndexError:
                     test = None
-                if test and type(int(test)) == type(1):
+                try:
+                    test2 = str(int(row[0]))
+                except ValueError:
+                    test2 = None
+                    print(row)
+                if test and test2:
                     # Normalise row data
-                    tmpdate = str(int(row[0]))
+                    tmpdate = test2
                     if not row[1] == '':
                         rowtrack = row[1]
                     if not row[2] == '':
