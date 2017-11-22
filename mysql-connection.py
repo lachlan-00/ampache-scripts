@@ -180,9 +180,9 @@ if cnx:
                     test = row[0]
                 except IndexError:
                     test = None
-                if test:
+                if test and type(int(test)) == type(1):
                     # Normalise row data
-                    tmpdate = str(row[0])
+                    tmpdate = str(int(row[0]))
                     if not row[1] == '':
                         rowtrack = row[1]
                     if not row[2] == '':
@@ -546,9 +546,9 @@ if cnx:
 
                         # check for existing data that matches the ID's
                         tmpcursor = cnx.cursor()
-                        checkdata = ("SELECT `date`, `object_type`, `object_id`" +
-                                     "FROM `object_count`" +
-                                     "WHERE `date` = " + tmpdate + " AND user = " + myid + ";")
+                        checkdata = ("SELECT `date`, `object_type`, `object_id` " +
+                                     "FROM `object_count` " +
+                                     "WHERE `date` = " + str(int(tmpdate)) + " AND user = " + myid + ";")
                         try:
                             tmpcursor.execute(checkdata)
                         except mysql.connector.errors.ProgrammingError:
@@ -563,7 +563,7 @@ if cnx:
 
                         # remove old data if correct play not found
                         removeoldplay = ("DELETE FROM `" + dbname + "`.`object_count` " +
-                                         "WHERE date = " + tmpdate + " AND user = " + myid + ";")
+                                         "WHERE date = " + str(int(tmpdate)) + " AND user = " + myid + ";")
 
                         # make sure the track is set to played in the song table
                         setplayed = ("UPDATE `song` SET `played` = 1" +
@@ -574,29 +574,41 @@ if cnx:
                         insertsong = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                       "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                       " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                      "VALUES (0, 'song', " + str(tmpsong) + ", " + tmpdate + ", " +
+                                      "VALUES (0, 'song', " + str(tmpsong) + ", " + str(int(tmpdate)) + ", " +
                                       myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
                         insertalbum = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                        "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                        " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                       "VALUES (0, 'album', " + str(tmpalbum) + ", " + tmpdate + ", " +
+                                       "VALUES (0, 'album', " + str(tmpalbum) + ", " + str(int(tmpdate)) + ", " +
                                        myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
                         insertartist = ("INSERT INTO `" + dbname + "`.`object_count` " +
                                         "(`id`, `object_type`, `object_id`, `date`, `user`, `agent`," +
                                         " `geo_latitude`, `geo_longitude`, `geo_name`, `count_type`) " +
-                                        "VALUES (0, 'artist', " + str(tmpartist) + ", " + tmpdate + ", " +
+                                        "VALUES (0, 'artist', " + str(tmpartist) + ", " + str(int(tmpdate)) + ", " +
                                         myid + "," + " 'mysql-connection', NULL, NULL, NULL, 'stream');")
                         # ampache creates a separate row for
                         # song/album/artist for each play
                         if not tmpsongsearch and not tmpartistsearch and not tmpalbumsearch:
                             # remove old play
                             tmpcursor = cnx.cursor()
-                            tmpcursor.execute(removeoldplay)
+                            try:
+                                tmpcursor.execute(removeoldplay)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + removeoldplay)
 
                             # insert new play
-                            tmpcursor.execute(insertsong)
-                            tmpcursor.execute(insertalbum)
-                            tmpcursor.execute(insertartist)
+                            try:
+                                tmpcursor.execute(insertsong)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + insertsong)
+                            try:
+                                tmpcursor.execute(insertalbum)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + insertalbum)
+                            try:
+                                tmpcursor.execute(insertartist)
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + insertartist)
 
                             # make sure song is set to played
                             tmpcursor.execute(setplayed)
@@ -604,7 +616,10 @@ if cnx:
                             print('found\n', row)
 
     # Clear songs of played status if they haven't been played
-    cursor.execute(clearnotplayed)
+    try:
+        tmpcursor.execute(clearnotplayed)
+    except mysql.connector.errors.ProgrammingError:
+        print('ERROR WITH QUERY:\n' + clearnotplayed)
     # close connections
     csvfile.close()
     cnx.close()
