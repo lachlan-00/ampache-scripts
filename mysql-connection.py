@@ -185,6 +185,9 @@ if cnx:
                 except ValueError:
                     test2 = None
                     print(row)
+                except IndexError:
+                    test2 = None
+                    print(row)
                 if test and test2:
                     # Normalise row data
                     tmpdate = test2
