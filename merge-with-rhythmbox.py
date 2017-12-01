@@ -246,9 +246,6 @@ class MERGEAMPBOX:
                 except mysql.connector.errors.OperationalError:
                     print('Connection lost... retrying')
                     self.connectdb()
-                    self.playcursor = self.cnx.cursor()
-                    self.playcursor.execute(query)
-                    cnxset = True
         elif self.cnx and self.rbbackup and querytype == 'rating':
             cnxset = False
             cnxcount = 0
@@ -264,9 +261,6 @@ class MERGEAMPBOX:
                 except mysql.connector.errors.OperationalError:
                     print('Connection lost... retrying')
                     self.connectdb()
-                    self.ratingcursor = self.cnx.cursor()
-                    self.ratingcursor.execute(query)
-                    cnxset = True
         self.fillrbcache()
 
     def fillrbcache(self):
