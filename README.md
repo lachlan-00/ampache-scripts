@@ -22,6 +22,10 @@ python3-mysql.connector
 NEWS
 ----
 
+Added  directional sync
+ * /torb (to pull data into rhythmbox only)
+ * /tomysql (to insert ratings that aren't in mysql into the database)
+
 merge-with-rhythmbox is now two-way syncing ratings!
 
 If you set a rating in rhythmbox it will be set on ampache when no rating is found
