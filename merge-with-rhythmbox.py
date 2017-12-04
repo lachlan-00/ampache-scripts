@@ -249,7 +249,7 @@ class MERGEAMPBOX:
         elif self.cnx and self.rbbackup and querytype == 'rating':
             cnxset = False
             cnxcount = 0
-            while not cnxset and cnxcount < 3:
+            while not cnxset and cnxcount < 4:
                 cnxcount = cnxcount + 1
                 try:
                     self.ratingcursor = self.cnx.cursor()
@@ -261,7 +261,10 @@ class MERGEAMPBOX:
                 except mysql.connector.errors.OperationalError:
                     print('Connection lost... retrying')
                     self.connectdb()
-        self.fillrbcache()
+        if cnxset:
+            self.fillrbcache()
+        else:
+            return False
 
     def fillrbcache(self):
         """ only process id db found and backup created """
