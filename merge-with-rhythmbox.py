@@ -191,17 +191,18 @@ class MERGEAMPBOX:
 
     def connectdb(self):
         """ Connect to MYSQL database """
+        print("Connect to MYSQL...")
         try:
             self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
                                                host=self.dbhost, database=self.dbname,
-                                               connection_timeout=5)
+                                               connection_timeout=10)
         except mysql.connector.errors.InterfaceError:
             try:
                 self.cnx = mysql.connector.connection.MySQLConnection(user=self.dbuser,
                                                                       password=self.dbpass,
                                                                       host=self.dbhost,
                                                                       database=self.dbname,
-                                                                      connection_timeout=5)
+                                                                      connection_timeout=10)
             except mysql.connector.errors.InterfaceError:
                 pass
         #
@@ -210,9 +211,10 @@ class MERGEAMPBOX:
         # eg. ssh -L 3306:externalhost:3306 externalhost
         #
         if not self.cnx:
+            print("trying localhost DB connections")
             try:
                 self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
-                                                   host='localhost', database=self.dbname, connection_timeout=5)
+                                                   host='127.0.0.1', database=self.dbname, connection_timeout=10)
             except mysql.connector.errors.InterfaceError:
                 pass
 
@@ -297,62 +299,76 @@ class MERGEAMPBOX:
 
     def mergeintorb(self, query, querytype):
         """ Merge mysql data into rhythmdb.xml """
-        if query:
-            print('Processing rhythmdb ' + querytype + '\'s using mysql\n')
-            changemade = False
-            for row in query:
-                mergeplays = False
-                idx = None
-                # Require a minimum of Date, Title, Artist, Album
-                try:
-                    test = [row[0], row[1], row[2], row[3]]
-                except IndexError:
-                    test = None
-                # Using the last.fm data check for the same song in rhythmbox
-                if test:
-                    if not mergeplays:
-                        # Check for a match using the id3 tags
-                        tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
-                                    str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
-                                    str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
-                        if tmpcheck in self.rbcache:
-                            idx = self.rbcache.index(tmpcheck)
-                    if not idx:
-                        # When you can't match tags, check filename
-                        if self.find and self.replace:
-                            tmpfilecheck = str(row[7].lower()).replace(self.find, self.replace)
-                        else:
-                            tmpfilecheck = str(row[7].lower())
-                        if tmpfilecheck in self.rbfilecache:
-                            idx = self.rbfilecache.index(tmpfilecheck)
-                # if the index is found, update the database
-                if idx:
-                    entry = self.items[idx]
-                    for info in entry:
-                        if info.tag == querytype:
-                            tmpplay = str(info.text)
-                            if str(info.text) == str(row[6]):
-                                mergeplays = True
-                            elif not str(info.text) == str(row[6]):
-                                changemade = True
-                                print('Updating ' + querytype + ' for', row[0], 'from ' + tmpplay + ' to', row[6])
-                                info.text = str(row[6])
-                                mergeplays = True
-                    if not mergeplays:
-                        changemade = True
-                        print('Inserting ' + querytype + ' for', row[0], 'as', row[6])
-                        insertplaycount = etree.SubElement(entry, querytype)
-                        insertplaycount.text = str(row[6])
-            if changemade:
-                print(querytype + 's from mysql have been inserted into the database.\n')
-                # Save changes
-                print('saving changes')
-                output = etree.ElementTree(self.root)
-                output.write(os.path.expanduser(DB), encoding="utf-8")
+        try:
+            if query:
+                print('Processing rhythmdb ' + querytype + '\'s using mysql\n')
+                changemade = False
+                for row in query:
+                    mergeplays = False
+                    idx = None
+                    # Require a minimum of Date, Title, Artist, Album
+                    try:
+                        test = [row[0], row[1], row[2], row[3]]
+                    except IndexError:
+                        test = None
+                    # Using the last.fm data check for the same song in rhythmbox
+                    if test:
+                        if not mergeplays:
+                            # Check for a match using the id3 tags
+                            tmpcheck = (str(row[0].lower()) + '\t' + str(row[1].lower()) + '\t' +
+                                        str(row[2].lower()) + '\t' + str(row[3]).replace('None', '') + '\t' +
+                                        str(row[4]).replace('None', '') + '\t' + str(row[5]).replace('None', ''))
+                            if tmpcheck in self.rbcache:
+                                idx = self.rbcache.index(tmpcheck)
+                        if not idx:
+                            # When you can't match tags, check filename
+                            if self.find and self.replace:
+                                tmpfilecheck = str(row[7].lower()).replace(self.find, self.replace)
+                            else:
+                                tmpfilecheck = str(row[7].lower())
+                            if tmpfilecheck in self.rbfilecache:
+                                idx = self.rbfilecache.index(tmpfilecheck)
+                    # if the index is found, update the database
+                    if idx:
+                        entry = self.items[idx]
+                        for info in entry:
+                            if info.tag == querytype:
+                                tmpplay = str(info.text)
+                                if str(info.text) == str(row[6]):
+                                    mergeplays = True
+                                elif not str(info.text) == str(row[6]):
+                                    changemade = True
+                                    print('Updating ' + querytype + ' for', row[0], 'from ' + tmpplay + ' to', row[6])
+                                    info.text = str(row[6])
+                                    mergeplays = True
+                        if not mergeplays:
+                            changemade = True
+                            print('Inserting ' + querytype + ' for', row[0], 'as', row[6])
+                            insertplaycount = etree.SubElement(entry, querytype)
+                            insertplaycount.text = str(row[6])
+                if changemade:
+                    print(querytype + 's from mysql have been inserted into the database.\n')
+                    # Save changes
+                    print('saving changes')
+                    output = etree.ElementTree(self.root)
+                    output.write(os.path.expanduser(DB), encoding="utf-8")
+                else:
+                    print('No ' + querytype + ' changed')
             else:
-                print('No ' + querytype + ' changed')
-        else:
-            print('no ' + querytype + ' data found\n')
+                print('no ' + querytype + ' data found\n')
+        except ReferenceError:
+            #connection lost again!
+            if querytype == 'play-count':
+                # Run query and cache rhythmbox database
+                self.execute(self.playquery, 'play-count')
+                # search and update rhythmbox database
+                self.mergeintorb(self.playcursor, 'play-count')
+            if querytype == 'rating':
+                # Run query and cache rhythmbox database
+                self.execute(self.ratingquery, 'rating')
+                # search and update rhythmbox database
+                self.mergeintorb(self.ratingcursor, 'rating')
+
 
     def mergeintoamp(self, querytype):
         """ Merge rhythmdb.xml data into mysql """
@@ -363,6 +379,8 @@ class MERGEAMPBOX:
             tmpsong = None
             tmpartist = None
             tmpalbum = None
+            tmptrack = None
+            tmpdisc = None
             tmppath = None
             rowchanged = 0
             for info in entry:
@@ -376,8 +394,14 @@ class MERGEAMPBOX:
                     tmpartist = str(info.text)
                 if info.tag == 'album':
                     tmpalbum = str(info.text)
+                if info.tag == 'track-number':
+                    tmptrack = str(info.text)
+                if info.tag == 'disc-number':
+                    tmpdisc = str(info.text)
                 if info.tag == 'location':
                     tmppath = urllib.parse.unquote(info.text).lower().replace('file://', '').replace("'", "\\'")
+            if tmpdisk == None:
+                tmpdisk = '0'
             if tmpvalue:
                 # Set insert query
                 insertpathquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
@@ -397,8 +421,9 @@ class MERGEAMPBOX:
                                'LEFT JOIN album on album.id = song.album ' +
                                'WHERE (song.title = \'' + tmpsong.replace("'", "\\'") + '\' AND ' +
                                'artist.name = \'' + tmpartist.replace("'", "\\'") + '\' AND ' +
-                               'album.name = \'' + tmpalbum.replace("'", "\\'") +
-                               '\') AND song.id NOT IN (SELECT rating.object_id from rating' +
+                               'album.name = \'' + tmpalbum.replace("'", "\\'") + '\' AND ' +
+                               'song.track = \'' + tmptrack + '\' AND ' +
+                               'album.disk = \'' + tmpdisc + '\') AND song.id NOT IN (SELECT rating.object_id from rating' +
                                ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
                 # insert into mysql
                 if self.cnx and self.rbbackup:
