@@ -400,8 +400,8 @@ class MERGEAMPBOX:
                     tmpdisc = str(info.text)
                 if info.tag == 'location':
                     tmppath = urllib.parse.unquote(info.text).lower().replace('file://', '').replace("'", "\\'")
-            if tmpdisk == None:
-                tmpdisk = '0'
+            if tmpdisc == None:
+                tmpdisc = '0'
             if tmpvalue:
                 # Set insert query
                 insertpathquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
