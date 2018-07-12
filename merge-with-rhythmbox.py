@@ -410,34 +410,35 @@ class MERGEAMPBOX:
                                    'FROM song ' +
                                    'LEFT JOIN artist on artist.id = song.artist ' +
                                    'LEFT JOIN album on album.id = song.album ' +
-                                   'WHERE song.file = \'' + tmppath + '\' AND ' +
+                                   'WHERE LOWER(song.file) = \'' + tmppath.lower().replace(self.replace, self.find) + '\' AND ' +
                                    'song.id NOT IN (SELECT rating.object_id from rating' +
                                    ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
-                insertquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
-                               'SELECT ' + str(self.myid) + ' AS `user`, \'song\' AS `object_type`, ' +
-                               'song.id AS object_id, ' + str(tmpvalue) + ' AS `rating` ' +
-                               'FROM song ' +
-                               'LEFT JOIN artist on artist.id = song.artist ' +
-                               'LEFT JOIN album on album.id = song.album ' +
-                               'WHERE (song.title = \'' + tmpsong.replace("'", "\\'") + '\' AND ' +
-                               'artist.name = \'' + tmpartist.replace("'", "\\'") + '\' AND ' +
-                               'album.name = \'' + tmpalbum.replace("'", "\\'") + '\' AND ' +
-                               'song.track = \'' + tmptrack + '\' AND ' +
-                               'album.disk = \'' + tmpdisc + '\') AND song.id NOT IN (SELECT rating.object_id from rating' +
-                               ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
+                #insertquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
+                #               'SELECT ' + str(self.myid) + ' AS `user`, \'song\' AS `object_type`, ' +
+                #               'song.id AS object_id, ' + str(tmpvalue) + ' AS `rating` ' +
+                #               'FROM song ' +
+                #               'LEFT JOIN artist on artist.id = song.artist ' +
+                #               'LEFT JOIN album on album.id = song.album ' +
+                #               'WHERE (song.title = \'' + tmpsong.replace("'", "\\'") + '\' AND ' +
+                #               'artist.name = \'' + tmpartist.replace("'", "\\'") + '\' AND ' +
+                #               'album.name = \'' + tmpalbum.replace("'", "\\'") + '\' AND ' +
+                #               'song.track = \'' + tmptrack + '\' AND ' +
+                #               'album.disk = \'' + tmpdisc + '\') AND song.id NOT IN (SELECT rating.object_id from rating' +
+                #               ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
                 # insert into mysql
                 if self.cnx and self.rbbackup:
                     insertcursor = self.cnx.cursor()
                     try:
                         insertcursor.execute(insertpathquery)
+                        #print(insertpathquery)
                         if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
                             print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
                             rowchanged = insertcursor.lastrowid
-                        else:
-                            insertcursor.execute(insertquery)
-                            if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
-                                print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
-                                rowchanged = insertcursor.lastrowid
+                        #else:
+                        #    insertcursor.execute(insertquery)
+                        #    if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
+                        #        print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                        #        rowchanged = insertcursor.lastrowid
                     except mysql.connector.errors.ProgrammingError:
                         print('ERROR WITH QUERY:\n' + insertquery)
 

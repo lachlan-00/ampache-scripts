@@ -191,12 +191,16 @@ if cnx:
                 if test and test2:
                     # Normalise row data
                     tmpdate = test2
-                    if not row[1] == '':
-                        rowtrack = row[1]
-                    if not row[2] == '':
-                        rowartist = row[2]
-                    if not row[3] == '':
-                        rowalbum = row[3]
+                    try:
+                        if not row[1] == '':
+                            rowtrack = row[1]
+                        if not row[2] == '':
+                            rowartist = row[2]
+                        if not row[3] == '':
+                            rowalbum = row[3]
+                    except IndexError:
+                        # missing rows in the tsv
+                        pass
                     try:
                         if not row[4] == '':
                             trackmbid = row[4]
