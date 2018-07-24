@@ -9,6 +9,9 @@ dbname,database
 find,/mnt/music/
 replace,/home/user/music/
 
+# Destination folder for playlists
+outfolder,/home/user/playlists/
+
 # Ampache variables
 myid,2
 

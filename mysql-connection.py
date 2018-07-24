@@ -16,6 +16,7 @@
 import csv
 import os
 import sys
+import time
 import shutil
 import mysql.connector
 
@@ -137,6 +138,8 @@ notfoundlist = []
 
 cnx = None
 if not process == 'check':
+    time.sleep(5)
+    print('creating database connection')
     try:
         cnx = mysql.connector.connect(user=dbuser, password=dbpass,
                                       host=dbhost, database=dbname)
@@ -153,6 +156,7 @@ if cnx:
     cursor = cnx.cursor()
     executionlist = []
     if os.path.isfile(dumpfile):
+        print('Processing file ' + dumpfile)
         with open(dumpfile, 'r') as csvfile:
             # lastscrape is sorted recent -> oldest so reverse that
             # that way the database will have a lower ID for older tracks

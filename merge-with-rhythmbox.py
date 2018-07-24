@@ -17,6 +17,7 @@ import csv
 import os
 import shutil
 import sys
+import time
 import mysql.connector
 import urllib.parse
 import xml.etree.ElementTree as etree
@@ -191,7 +192,9 @@ class MERGEAMPBOX:
 
     def connectdb(self):
         """ Connect to MYSQL database """
+        time.sleep(5)
         print("Connect to MYSQL...")
+
         try:
             self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
                                                host=self.dbhost, database=self.dbname,
@@ -208,7 +211,7 @@ class MERGEAMPBOX:
         #
         # Try to get through with ssh fowarding
         #
-        # eg. ssh -L 3306:externalhost:3306 externalhost
+        # eg. ssh -L 3306:localhost:3306 externalhost
         #
         if not self.cnx:
             print("trying localhost DB connections")
