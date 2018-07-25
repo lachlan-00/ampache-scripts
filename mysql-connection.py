@@ -26,7 +26,8 @@ dbpass = None
 dbhost = None
 dbname = None
 csvfile = None
-printallrows = None
+printallrows = False
+printerrors = False
 settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
@@ -46,6 +47,10 @@ for arguments in sys.argv:
         process = 'loved'
     if arguments[:4] == '/all':
         printallrows = True
+    if arguments[:7] == '/silent':
+        printallrows = False
+    if arguments[:7] == '/errors':
+        printerrors = True
     if arguments[:3] == '/c:':
         process = 'check'
         checkfile = arguments[3:]
@@ -166,8 +171,9 @@ if cnx:
             # that way the database will have a lower ID for older tracks
             openfile = reversed(list(csv.reader(csvfile, delimiter='\t', )))
             # print tsv header to allow live updates to output file
-            print('date\ttrack\tartist\talbum\ttrackmbid\tartistmbid' +
-                  '\talbummbid\tampachetrack\tampacheartist\tampachealbum')
+            if printallrows or printerrors:
+                print('date\ttrack\tartist\talbum\ttrackmbid\tartistmbid' +
+                      '\talbummbid\tampachetrack\tampacheartist\tampachealbum')
             for row in openfile:
                 tmprow = []
                 tmpdate = None
@@ -192,10 +198,10 @@ if cnx:
                     test2 = str(int(row[0]))
                 except ValueError:
                     test2 = None
-                    print(row)
+                    #print(row)
                 except IndexError:
                     test2 = None
-                    print(row)
+                    #print(row)
                 if test and test2:
                     # Normalise row data
                     tmpdate = test2
@@ -227,6 +233,15 @@ if cnx:
                     except IndexError:
                         # missing all the rows in the tsv
                         pass
+
+                    # print rows as they are processed. (good for piping)
+                    if printallrows:
+                        print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
+                              '\t' + str(trackmbid).replace("None", "") +
+                              '\t' + str(artistmbid).replace("None", "") +
+                              '\t' + str(albummbid).replace("None", "") +
+                              '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
+
                     # search ampache db for song, album and artist
                     # Look for a musicbrainz ID before the text of the tags
                     # This should hopefully be more reliable if your tags change a lot
@@ -549,9 +564,8 @@ if cnx:
                                     print('ERROR WITH QUERY:\n' + tmpquery)
                                 for rows in cursor:
                                     tmpsong = rows[0]
-
-                        # print rows with missing data so i can check
-                        if not tmpsong or not tmpartist or not tmpalbum or printallrows:
+                        # print rows with missing data
+                        if (not tmpsong or not tmpartist or not tmpalbum) and printerrors:
                             print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
                                   '\t' + str(trackmbid).replace("None", "") +
                                   '\t' + str(artistmbid).replace("None", "") +
@@ -637,6 +651,7 @@ if cnx:
 
     # Clear songs of played status if they haven't been played
     try:
+        tmpcursor = cnx.cursor()
         tmpcursor.execute(clearnotplayed)
     except mysql.connector.errors.ProgrammingError:
         print('ERROR WITH QUERY:\n' + clearnotplayed)
