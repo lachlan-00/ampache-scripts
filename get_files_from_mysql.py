@@ -83,6 +83,8 @@ for arguments in sys.argv:
 
 # get settings for database
 if not os.path.isfile(SETTINGS):
+    SETTINGS = os.path.join(os.path.dirname(os.path.relpath(__file__)), SETTINGS)
+if not os.path.isfile(SETTINGS):
     SETTINGS = os.path.join(os.path.dirname(os.path.realpath(__file__)), SETTINGS)
 if os.path.isfile(SETTINGS):
     print('Loading local settings file\n')
@@ -104,6 +106,18 @@ if os.path.isfile(SETTINGS):
                     dbname = row[1]
                 elif row[0] == 'myid':
                     myid = row[1]
+                elif row[0] == 'usbfolder':
+                    try:
+                        if os.path.isdir(destination):
+                            destination = row[1]
+                    except NameError:
+                        destination = None
+                        pass
+                    except TypeError:
+                        destination = None
+                        pass
+                elif row[0] == 'usbdepth':
+                    depth = int(row[1])
     csvfile.close()
 else:
     # Database variables
@@ -135,7 +149,7 @@ if destination:
             print("db connection fail")
             pass
 else:
-    print('\ndestination not found. use /d: to set an output path\n' +
+    print('Missing Folder: ' + str(destination) + '\nDestination not found. use /d: to set an output path\n' +
           '\n   e.g. /media/user/USB/Music\n')
 
 # process query and copy results to the destination
@@ -199,3 +213,4 @@ if cnx and os.path.isdir(destination) and len(destinfiles) != 0:
             foldersearch(os.path.join(destination, files))
         else:
             filecheck(os.path.join(destination, files))
+

@@ -71,7 +71,14 @@ class MERGEAMPBOX:
         self.noratingquery = None
 
         # Default file names
-        self.settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
+        if os.path.isfile('settings.csv'):
+            self.settings = 'settings.csv'
+        elif os.path.isfile(os.path.join(os.path.dirname(os.path.relpath(__file__)), 'settings.csv')):
+            self.settings = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'settings.csv')
+        elif os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')):
+            self.settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
+        else:
+            self.settings = None
 
         # Variable data
         self.dbuser = None
@@ -85,7 +92,11 @@ class MERGEAMPBOX:
         self.rbcache = []
         self.rbfilecache = []
 
-        self.run()
+        # Run if settings file is found
+        if self.settings:
+            self.run()
+        else:
+            print('\nError: Unable to load settings file.\n')
 
     def run(self):
         if TORB and TOMYSQL:

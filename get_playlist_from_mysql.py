@@ -46,6 +46,8 @@ dbname = None
 
 # get settings for database
 if not os.path.isfile(SETTINGS):
+    SETTINGS = os.path.join(os.path.dirname(os.path.relpath(__file__)), SETTINGS)
+if not os.path.isfile(SETTINGS):
     SETTINGS = os.path.join(os.path.dirname(os.path.realpath(__file__)), SETTINGS)
 if os.path.isfile(SETTINGS):
     print('found settings file')

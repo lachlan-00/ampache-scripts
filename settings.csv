@@ -12,6 +12,11 @@ replace,/home/user/music/
 # Destination folder for playlists
 outfolder,/home/user/playlists/
 
+# Destination folder for USB sync
+# Useful if you only use a single device.
+#(OPTIONAL)usbfolder,/media/user/USB/music
+#(OPTIONAL)usbdepth,1
+
 # Ampache variables
 myid,2
 
