@@ -87,7 +87,7 @@ if not os.path.isfile(SETTINGS):
 if not os.path.isfile(SETTINGS):
     SETTINGS = os.path.join(os.path.dirname(os.path.realpath(__file__)), SETTINGS)
 if os.path.isfile(SETTINGS):
-    print('Loading local settings file\n')
+    print('Loading local settings file\n' + SETTINGS)
     with open(SETTINGS, 'r') as csvfile:
         openfile = csv.reader(csvfile)
         for row in openfile:
@@ -108,7 +108,7 @@ if os.path.isfile(SETTINGS):
                     myid = row[1]
                 elif row[0] == 'usbfolder':
                     try:
-                        if os.path.isdir(destination):
+                        if os.path.isdir(row[1]):
                             destination = row[1]
                     except NameError:
                         destination = None
