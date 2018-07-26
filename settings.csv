@@ -7,7 +7,7 @@ dbname,database
 # Find in Ampache/Query Data and Replace with RhythmDB Path
 # Useful for when your server has a different path to the client
 find,/mnt/music/
-replace,/home/user/music/
+replace,/home/user/Music/
 
 # Destination folder for playlists
 outfolder,/home/user/playlists/

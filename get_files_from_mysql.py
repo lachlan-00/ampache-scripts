@@ -43,6 +43,8 @@ dbname = None
 # destination folder
 destination = None
 depth = 0
+find = None
+replace = None
 # files that should be in the destination
 destinfiles = []
 
@@ -106,6 +108,10 @@ if os.path.isfile(SETTINGS):
                     dbname = row[1]
                 elif row[0] == 'myid':
                     myid = row[1]
+                elif row[0] == 'find':
+                    find = row[1]
+                elif row[0] == 'replace':
+                    replace = row[1]
                 elif row[0] == 'usbfolder':
                     try:
                         if os.path.isdir(row[1]):
@@ -148,6 +154,18 @@ if destination:
         except mysql.connector.errors.InterfaceError:
             print("db connection fail")
             pass
+    #
+    # Try to get through with ssh fowarding
+    #
+    # eg. ssh -L 3306:localhost:3306 externalhost
+    #
+    if not cnx:
+        print("trying localhost DB connections")
+        try:
+            cnx = mysql.connector.connect(user=dbuser, password=dbpass,
+                                               host='127.0.0.1', database=dbname, connection_timeout=10)
+        except mysql.connector.errors.InterfaceError:
+            pass
 else:
     print('Missing Folder: ' + str(destination) + '\nDestination not found. use /d: to set an output path\n' +
           '\n   e.g. /media/user/USB/Music\n')
@@ -158,11 +176,11 @@ if cnx and destination:
     cursor = cnx.cursor()
     tmpquery = ("SELECT song.file, artist.name, album.name, song.title " +
                  "FROM rating " +
-                 "INNER JOIN song on rating.object_id = song.id AND rating.object_type = 'song' AND rating.user = " + str(self.myid) + " " +
+                 "INNER JOIN song on rating.object_id = song.id AND rating.object_type = 'song' AND rating.user = " + str(myid) + " " +
                  "INNER JOIN artist on song.artist = artist.id " +
                  "INNER JOIN album on song.album = album.id " +
                  "WHERE song.id in (SELECT object_id FROM `rating` " +
-                 "                  WHERE object_type = 'song' and user = " + str(self.myid) + " AND " +
+                 "                  WHERE object_type = 'song' and user = " + str(myid) + " AND " +
                  "                        rating in (3,4,5))")
     try:
         cursor.execute(tmpquery)
@@ -171,12 +189,12 @@ if cnx and destination:
     for rows in cursor:
         tmpsource = None
         tmpdestin = None
-        files = rows[0]
+        files = rows[0].replace(find, replace)
         artist = rows[1]
         if os.path.isfile(files):
             tmpsource = files
             if depth == 0:
-                tmpfile = artist.replace('/', '_') + '-' +(os.path.basename(tmpsource)).replace(' - ', '-')
+                tmpfile = artist.replace('/', '_') + '-' + (os.path.basename(tmpsource)).replace(' - ', '-')
             else:
                 count = 0
                 tmpdepth = 0 - depth
@@ -191,13 +209,10 @@ if cnx and destination:
                 tmpdestin = tmpdestin.replace(items, '')
                 tmpfile = tmpfile.replace(items, '')
             tmpdestin = tmpdestin.replace('sftphost=', 'sftp:host=')
-            #print('\ndestination...\n', destination)
-            print('\ncopying...\n', tmpsource)
-            # print('\nnot copied\n', files)
             if not os.path.isdir(os.path.dirname(tmpdestin)):
                 os.makedirs(os.path.dirname(tmpdestin))
             if not os.path.isfile(tmpdestin):
-                #print('\ncopying...\n', tmpdestin)
+                print('\ncopying...\n', tmpsource)
                 shutil.copy2(tmpsource, tmpdestin)
                 print('copiedfile\n', tmpdestin)
                 destinfiles.append(tmpdestin)
