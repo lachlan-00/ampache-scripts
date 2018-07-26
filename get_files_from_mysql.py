@@ -114,7 +114,7 @@ if os.path.isfile(SETTINGS):
                     replace = row[1]
                 elif row[0] == 'usbfolder':
                     try:
-                        if os.path.isdir(row[1]):
+                        if not destination and os.path.isdir(row[1]):
                             destination = row[1]
                     except NameError:
                         destination = None
@@ -141,7 +141,7 @@ if destination:
         destination = None
     # Connect to the mysql database
     time.sleep(5)
-    print('creating database connection\n')
+    print('Creating database connection\n')
     try:
         cnx = mysql.connector.connect(user=dbuser, password=dbpass,
                                       host=dbhost, database=dbname)
@@ -181,7 +181,8 @@ if cnx and destination:
                  "INNER JOIN album on song.album = album.id " +
                  "WHERE song.id in (SELECT object_id FROM `rating` " +
                  "                  WHERE object_type = 'song' and user = " + str(myid) + " AND " +
-                 "                        rating in (3,4,5))")
+                 "                        rating in (3,4,5))" +
+                 "ORDER BY song.file")
     try:
         cursor.execute(tmpquery)
     except mysql.connector.errors.ProgrammingError:
@@ -212,14 +213,14 @@ if cnx and destination:
             if not os.path.isdir(os.path.dirname(tmpdestin)):
                 os.makedirs(os.path.dirname(tmpdestin))
             if not os.path.isfile(tmpdestin):
-                print('\ncopying...\n', tmpsource)
+                print('\nIN.....', tmpsource)
                 shutil.copy2(tmpsource, tmpdestin)
-                print('copiedfile\n', tmpdestin)
+                print('OUT....', tmpdestin)
                 destinfiles.append(tmpdestin)
             elif os.path.isfile(tmpdestin):
                 destinfiles.append(tmpdestin)
         else:
-            print('\nnot copied\n', files)
+            print('\nFAIL...', files, '\n')
 
 # cleanup
 if cnx and os.path.isdir(destination) and len(destinfiles) != 0:
