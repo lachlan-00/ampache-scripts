@@ -144,7 +144,7 @@ QUERIES = (("SELECT REPLACE(song.file, '" + FINDPATH + "', '" + REPLACEPATH + "'
             "INNER JOIN album on song.album = album.id " +
             "WHERE rating.object_type = 'song' and " +
             "rating.user = " + str(myid) + " and " +
-            "rating.rating = 2) AND " +
+            "rating.rating = 2) " +
             "ORDER BY song.`file`",
             FOLDERPATH + '2ndchancealbums.m3u'))
 
@@ -220,6 +220,7 @@ if cnx:
         outfile = playlists[1]
         tmpquery = playlists[0]
         cursor = cnx.cursor()
+        print('Creating: ' + outfile)
         try:
             cursor.execute(tmpquery)
         except mysql.connector.errors.ProgrammingError:
