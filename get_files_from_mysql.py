@@ -214,9 +214,13 @@ if cnx and destination:
                 os.makedirs(os.path.dirname(tmpdestin))
             if not os.path.isfile(tmpdestin):
                 print('\nIN.....', tmpsource)
-                shutil.copy2(tmpsource, tmpdestin)
-                print('OUT....', tmpdestin)
-                destinfiles.append(tmpdestin)
+                try:
+                    shutil.copy2(tmpsource, tmpdestin)
+                    print('OUT....', tmpdestin)
+                    destinfiles.append(tmpdestin)
+                except OSError:
+                    print('\nFAIL...', files, '\n')
+                    pass
             elif os.path.isfile(tmpdestin):
                 destinfiles.append(tmpdestin)
         else:
