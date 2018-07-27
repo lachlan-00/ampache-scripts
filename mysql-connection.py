@@ -28,7 +28,7 @@ dbname = None
 csvfile = None
 printallrows = False
 printerrors = False
-settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.csv')
+settings = 'settings.csv'
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
 checkfile = ''
@@ -58,9 +58,9 @@ for arguments in sys.argv:
 
 # get settings for database
 if not os.path.isfile(settings):
-    SETTINGS = os.path.join(os.path.dirname(os.path.relpath(__file__)), settings)
+    settings = os.path.join(os.path.dirname(os.path.relpath(__file__)), settings)
 if not os.path.isfile(settings):
-    SETTINGS = os.path.join(os.path.dirname(os.path.realpath(__file__)), settings)
+    settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), settings)
 if os.path.isfile(settings) and not process == 'check':
     print('found settings file')
     with open(settings, 'r') as csvfile:
