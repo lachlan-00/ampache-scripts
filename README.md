@@ -1,17 +1,27 @@
 # ampache-scripts
 GPLv3 <http://www.gnu.org/licenses/>
 
-There are three scripts in the project with separate uses:
- * mysql-connection.py
-     Insert data from Last.fm into your ampache database
+There are now five scripts in the project with separate uses:
 
  * get_files_from_mysql.py
      Query ampache database for top rated songs and copy
-     to desired path
+     to desired path.
+
+ * get_images_for_ampache.py
+     This script will examine a path for art (currently only 'folder.jpg')
+     If it matches the art it will try to insert it into the database.
+
+ * get_playlist_from_mysql.py
+     This script will query your ampache database and create
+     output m3u playlists for use in other programs like rhythmbox.
 
  * merge-with-rhythmbox.py
      Insert play totals and ratings into rhythmbox using
      Ampache queries as a master source.
+
+ * mysql-connection.py
+     Insert data from Last.fm into your ampache database.
+
 
 REQUIREMENTS
 ------------
