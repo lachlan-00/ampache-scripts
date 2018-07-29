@@ -162,7 +162,7 @@ class GETLOCALIMAGES:
         try:
             cursor.execute(albuminsert, (self.binarydata, ))
             if cursor.lastrowid != 0:
-                print('Inserted ' + album)
+                print('Inserted ' + str(album))
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albuminsert)
             pass
