@@ -25,6 +25,7 @@ dbuser = None
 dbpass = None
 dbhost = None
 dbname = None
+myid = None
 csvfile = None
 printallrows = False
 printerrors = False
@@ -198,10 +199,10 @@ if cnx:
                     test2 = str(int(row[0]))
                 except ValueError:
                     test2 = None
-                    #print(row)
+                    # print(row)
                 except IndexError:
                     test2 = None
-                    #print(row)
+                    # print(row)
                 if test and test2:
                     # Normalise row data
                     tmpdate = test2

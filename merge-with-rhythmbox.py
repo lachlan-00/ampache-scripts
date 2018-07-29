@@ -247,6 +247,7 @@ class MERGEAMPBOX:
 
     def execute(self, query, querytype):
         """ query ampache mysql database """
+        cnxset = None
         if self.cnx and self.rbbackup and querytype == 'play-count':
             cnxset = False
             cnxcount = 0
@@ -371,7 +372,7 @@ class MERGEAMPBOX:
             else:
                 print('no ' + querytype + ' data found\n')
         except ReferenceError:
-            #connection lost again!
+            # connection lost again!
             if querytype == 'play-count':
                 # Run query and cache rhythmbox database
                 self.execute(self.playquery, 'play-count')
@@ -383,7 +384,6 @@ class MERGEAMPBOX:
                 # search and update rhythmbox database
                 self.mergeintorb(self.ratingcursor, 'rating')
 
-
     def mergeintoamp(self, querytype):
         """ Merge rhythmdb.xml data into mysql """
         self.fillrbcache()
@@ -391,9 +391,9 @@ class MERGEAMPBOX:
         for entry in self.items:
             tmpvalue = None
             tmpsong = None
-            tmpartist = None
-            tmpalbum = None
-            tmptrack = None
+            # tmpartist = None
+            # tmpalbum = None
+            # tmptrack = None
             tmpdisc = None
             tmppath = None
             rowchanged = 0
@@ -404,17 +404,17 @@ class MERGEAMPBOX:
                         tmpvalue = str(info.text)
                 if info.tag == 'title':
                     tmpsong = str(info.text)
-                if info.tag == 'artist':
-                    tmpartist = str(info.text)
-                if info.tag == 'album':
-                    tmpalbum = str(info.text)
-                if info.tag == 'track-number':
-                    tmptrack = str(info.text)
+                # if info.tag == 'artist':
+                #     tmpartist = str(info.text)
+                # if info.tag == 'album':
+                #     tmpalbum = str(info.text)
+                # if info.tag == 'track-number':
+                #     tmptrack = str(info.text)
                 if info.tag == 'disc-number':
                     tmpdisc = str(info.text)
                 if info.tag == 'location':
                     tmppath = urllib.parse.unquote(info.text).lower().replace('file://', '').replace("'", "\\'")
-            if tmpdisc == None:
+            if tmpdisc is None:
                 tmpdisc = '0'
             if tmpvalue:
                 # Set insert query
@@ -427,34 +427,17 @@ class MERGEAMPBOX:
                                    'WHERE LOWER(song.file) = \'' + tmppath.lower().replace(self.replace, self.find) + '\' AND ' +
                                    'song.id NOT IN (SELECT rating.object_id from rating' +
                                    ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
-                #insertquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
-                #               'SELECT ' + str(self.myid) + ' AS `user`, \'song\' AS `object_type`, ' +
-                #               'song.id AS object_id, ' + str(tmpvalue) + ' AS `rating` ' +
-                #               'FROM song ' +
-                #               'LEFT JOIN artist on artist.id = song.artist ' +
-                #               'LEFT JOIN album on album.id = song.album ' +
-                #               'WHERE (song.title = \'' + tmpsong.replace("'", "\\'") + '\' AND ' +
-                #               'artist.name = \'' + tmpartist.replace("'", "\\'") + '\' AND ' +
-                #               'album.name = \'' + tmpalbum.replace("'", "\\'") + '\' AND ' +
-                #               'song.track = \'' + tmptrack + '\' AND ' +
-                #               'album.disk = \'' + tmpdisc + '\') AND song.id NOT IN (SELECT rating.object_id from rating' +
-                #               ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
                 # insert into mysql
                 if self.cnx and self.rbbackup:
                     insertcursor = self.cnx.cursor()
                     try:
                         insertcursor.execute(insertpathquery)
-                        #print(insertpathquery)
+                        # print(insertpathquery)
                         if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
                             print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
                             rowchanged = insertcursor.lastrowid
-                        #else:
-                        #    insertcursor.execute(insertquery)
-                        #    if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
-                        #        print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
-                        #        rowchanged = insertcursor.lastrowid
                     except mysql.connector.errors.ProgrammingError:
-                        print('ERROR WITH QUERY:\n' + insertquery)
+                        print('ERROR WITH QUERY:\n' + insertpathquery)
 
 
 if __name__ == "__main__":

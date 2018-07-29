@@ -29,6 +29,7 @@ class GETLOCALIMAGES:
         self.dbpass = None
         self.dbhost = None
         self.dbname = None
+        self.myid = None
         self.csvfile = None
         self.source = None
         self.cnx = None
@@ -55,7 +56,7 @@ class GETLOCALIMAGES:
         if not os.path.isfile(self.settings):
             self.settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.settings)
         if os.path.isfile(self.settings):
-            print('found settings file')
+            print('Found settings file')
             with open(self.settings, 'r') as csvfile:
                 openfile = csv.reader(csvfile)
                 for row in openfile:
@@ -99,18 +100,11 @@ class GETLOCALIMAGES:
                     self.foldersearch(tmppath)
                 elif os.path.isfile(tmppath) and pathfiles.lower() == self.artname:
                     # run filesearch
-                    #print(tmppath)
+                    # print(tmppath)
                     self.filecheck(tmppath)
 
-
-    def filecheck(self, input_string):
-        self.binarydata = None
-        self.binarydata = open(input_string, 'rb').read()
-        if self.binarydata:
-            self.sqlinserts(input_string.replace(self.artname, ''))
-
-    def sqlinserts(self, source_dir):
-        """ check connection then look & insert album art """
+    def checkdbconn(self):
+        """ Maintain database connection """
         if not self.cnx:
             print('creating database connection')
             try:
@@ -124,11 +118,20 @@ class GETLOCALIMAGES:
                                                                           database=self.dbname)
                 except mysql.connector.errors.InterfaceError:
                     pass
+
+    def filecheck(self, input_string):
+        self.binarydata = None
+        self.binarydata = open(input_string, 'rb').read()
+        if self.binarydata:
+            self.sqlinserts(input_string.replace(self.artname, ''))
+
+    def sqlinserts(self, source_dir):
+        """ check connection then look & insert album art """
+        self.checkdbconn()
         if self.cnx:
-            tmpalbum = self.lookforalbum(source_dir)# + '\t' + str(self.binarydata))
+            tmpalbum = self.lookforalbum(source_dir)
             if tmpalbum:
                 self.insertalbum(tmpalbum)
-            
 
     def lookforalbum(self, source_dir):
         """ get the album id from the database matching the filename """
@@ -142,11 +145,17 @@ class GETLOCALIMAGES:
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albumsearch)
             pass
+        except BrokenPipeError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albumsearch)
+            pass
         return None
 
     def insertalbum(self, album):
         """ check the database for an existing line and insert if missing """
-        albumcheck = ('SELECT `object_id` FROM `image` WHERE `object_type` = \'album\' AND `object_id` = ' + str(album) + ';')
+        albumcheck = ('SELECT `object_id` FROM `image` WHERE `object_type` = \'album\' AND `object_id` = '
+                      + str(album) + ';')
         checkcursor = self.cnx.cursor(buffered=True)
         try:
             checkcursor.execute(albumcheck)
@@ -156,8 +165,13 @@ class GETLOCALIMAGES:
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albumcheck)
             pass
-        albuminsert = ('INSERT INTO `image` (`id`, `image`, `width`, `height`, `mime`, `size`, `object_type`, `object_id`, `kind`) ' +
-                       'VALUES (\'0\', %s, \'300\', \'300\', \'image/png\', \'original\', \'album\', '+ str(album) +', \'default\');')
+        except BrokenPipeError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albumcheck)
+            pass
+        albuminsert = ('INSERT INTO `image` (`id`, `image`, `mime`, `size`, `object_type`, `object_id`, `kind`) ' +
+                       'VALUES (\'0\', %s, \'image/png\', \'original\', \'album\', ' + str(album) + ', \'default\');')
         cursor = self.cnx.cursor(buffered=True)
         try:
             cursor.execute(albuminsert, (self.binarydata, ))
@@ -166,15 +180,23 @@ class GETLOCALIMAGES:
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albuminsert)
             pass
-        #print(albuminsert)
+        except BrokenPipeError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albuminsert, (self.binarydata, ))
+            if cursor.lastrowid != 0:
+                print('Inserted ' + str(album))
+            pass
 
     def lookforfiles(self, source_dir):
         """ simple file or folder checks """
         if os.path.isdir(source_dir):
-           for files in os.listdir(source_dir):
+            print('Opening ' + str(source_dir))
+            for files in os.listdir(source_dir):
                 if os.path.isdir(os.path.join(source_dir, files)):
                     self.foldersearch(os.path.join(source_dir, files))
                 else:
                     self.filecheck(os.path.join(source_dir, files))
+
 
 GETLOCALIMAGES()

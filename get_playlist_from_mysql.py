@@ -43,6 +43,7 @@ dbuser = None
 dbpass = None
 dbhost = None
 dbname = None
+myid = None
 
 # get settings for database
 if not os.path.isfile(SETTINGS):
@@ -179,7 +180,7 @@ def filecheck(input_string):
 def log_processing(logfile, logmessage):
     """ Perform log operations """
     # Create if missing
-    if (not os.path.exists(logfile)):
+    if not os.path.exists(logfile):
         print('creating')
         files = codecs.open(logfile, "w", "utf8")
         files.close()
@@ -192,6 +193,7 @@ def log_processing(logfile, logmessage):
         logline = [logmessage.decode('utf-8')]
         files.write((u"".join(logline)) + u"\n")
     files.close()
+
 
 # Connect to the mysql database
 print('creating database connection\n')
@@ -239,10 +241,10 @@ if cnx:
                     log_processing(outfile, '#EXTM3U')
                     outcount = outcount + 1
                 else:
-                    files = rows[0] #.replace('"', r"\"")
-                    artist = rows[1] #.replace('"', r"\"")
-                    album = rows[2] #.replace('"', r"\"")
-                    song = rows[3] #.replace('"', r"\"")
+                    files = rows[0]
+                    artist = rows[1]
+                    album = rows[2]
+                    song = rows[3]
                     song_line = ('#EXTINF:,' + song)
                     log_processing(outfile, song_line)
                     log_processing(outfile, files)

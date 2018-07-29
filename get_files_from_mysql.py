@@ -39,6 +39,7 @@ dbuser = None
 dbpass = None
 dbhost = None
 dbname = None
+myid = None
 
 # destination folder
 destination = None
@@ -163,7 +164,7 @@ if destination:
         print("trying localhost DB connections")
         try:
             cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                               host='127.0.0.1', database=dbname, connection_timeout=10)
+                                          host='127.0.0.1', database=dbname, connection_timeout=10)
         except mysql.connector.errors.InterfaceError:
             pass
 else:
@@ -175,14 +176,15 @@ if cnx and destination:
     print('Connection Established\n')
     cursor = cnx.cursor()
     tmpquery = ("SELECT song.file, artist.name, album.name, song.title " +
-                 "FROM rating " +
-                 "INNER JOIN song on rating.object_id = song.id AND rating.object_type = 'song' AND rating.user = " + str(myid) + " " +
-                 "INNER JOIN artist on song.artist = artist.id " +
-                 "INNER JOIN album on song.album = album.id " +
-                 "WHERE song.id in (SELECT object_id FROM `rating` " +
-                 "                  WHERE object_type = 'song' and user = " + str(myid) + " AND " +
-                 "                        rating in (3,4,5))" +
-                 "ORDER BY song.file")
+                "FROM rating " +
+                "INNER JOIN song on rating.object_id = song.id AND " +
+                " rating.object_type = 'song' AND rating.user = " + str(myid) + " " +
+                "INNER JOIN artist on song.artist = artist.id " +
+                "INNER JOIN album on song.album = album.id " +
+                "WHERE song.id in (SELECT object_id FROM `rating` " +
+                "                  WHERE object_type = 'song' and user = " + str(myid) + " AND " +
+                "                        rating in (3,4,5))" +
+                "ORDER BY song.file")
     try:
         cursor.execute(tmpquery)
     except mysql.connector.errors.ProgrammingError:
