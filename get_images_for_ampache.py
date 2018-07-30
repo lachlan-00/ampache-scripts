@@ -149,9 +149,10 @@ class GETLOCALIMAGES:
         """ check connection then look & insert album art """
         self.checkdbconn()
         if self.cnx:
-            tmpalbum = self.lookforalbum(source_dir)
-            if tmpalbum:
-                self.insertalbum(tmpalbum)
+            #tmpalbum = self.lookforalbum(source_dir)
+            self.lookforalbum(source_dir)
+            #if tmpalbum:
+            #    self.insertalbum(tmpalbum)
         else:
             print('Connection Failed')
 
@@ -163,7 +164,8 @@ class GETLOCALIMAGES:
         try:
             cursor.execute(albumsearch)
             for row in cursor:
-                return row[0]
+                #return row[0]
+                self.insertalbum(row[0])
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albumsearch)
             pass
@@ -220,7 +222,7 @@ class GETLOCALIMAGES:
             # alphabetically
             current_path.sort(key=lambda y: y.lower())
             # or by most recent modification date
-            # current_path.sort(key=lambda s: os.path.getmtime(os.path.join(input_string, s)), reverse=True)
+            # current_path.sort(key=lambda s: os.path.getmtime(os.path.join(self.current_dir, s)), reverse=True)
             print('Searching ' + self.source)
             for files in current_path:
                 if os.path.isdir(os.path.join(source_dir, files)):
