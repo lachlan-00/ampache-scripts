@@ -34,9 +34,14 @@ class GETLOCALIMAGES:
         self.source = None
         self.cnx = None
         self.binarydata = None
+        self.current_dir = None
+        self.nowtime = None
+        self.lasttime = None
 
         self.settings = 'settings.csv'
         self.artname = 'folder.jpg'
+        self.nowtime = int(time.time())
+        self.count = 0
         self.load()
         self.lookforfiles(self.source)
 
@@ -89,11 +94,11 @@ class GETLOCALIMAGES:
     def foldersearch(self, input_string):
         """ process dirs or run tag check for files (if mp3) """
         if os.path.isdir(input_string):
-            current_path = os.listdir(input_string)
-            # alphabetically
-            # current_path.sort(key=lambda y: y.lower())
-            # sort by most recent modification date
-            current_path.sort(key=lambda s: os.path.getmtime(os.path.join(input_string, s)), reverse=True)
+            self.current_dir = input_string
+            self.currentdir()
+            # Sort subfolders alphabetically
+            current_path = os.listdir(self.current_dir)
+            current_path.sort(key=lambda y: y.lower())
             for pathfiles in current_path:
                 tmppath = os.path.join(input_string, pathfiles)
                 if os.path.isdir(tmppath):
@@ -109,15 +114,30 @@ class GETLOCALIMAGES:
             print('creating database connection')
             try:
                 self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
-                                                   host=self.dbhost, database=self.dbname)
+                                                   host=self.dbhost, database=self.dbname, connection_timeout=5)
+                print('Connected')
             except mysql.connector.errors.InterfaceError:
                 try:
                     self.cnx = mysql.connector.connection.MySQLConnection(user=self.dbuser,
                                                                           password=self.dbpass,
                                                                           host=self.dbhost,
-                                                                          database=self.dbname)
+                                                                          database=self.dbname, connection_timeout=5)
+                    print('Connected')
                 except mysql.connector.errors.InterfaceError:
                     pass
+        #
+        # Try to get through with ssh fowarding
+        #
+        # eg. ssh -L 3306:localhost:3306 externalhost
+        #
+        if not self.cnx:
+            print("trying localhost DB connections")
+            try:
+                self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
+                                                   host='127.0.0.1', database=self.dbname, connection_timeout=5)
+                print('Connected')
+            except mysql.connector.errors.InterfaceError:
+                pass
 
     def filecheck(self, input_string):
         self.binarydata = None
@@ -132,6 +152,8 @@ class GETLOCALIMAGES:
             tmpalbum = self.lookforalbum(source_dir)
             if tmpalbum:
                 self.insertalbum(tmpalbum)
+        else:
+            print('Connection Failed')
 
     def lookforalbum(self, source_dir):
         """ get the album id from the database matching the filename """
@@ -191,12 +213,30 @@ class GETLOCALIMAGES:
     def lookforfiles(self, source_dir):
         """ simple file or folder checks """
         if os.path.isdir(source_dir):
-            print('Opening ' + str(source_dir))
-            for files in os.listdir(source_dir):
+            self.current_dir = str(source_dir)
+            self.currentdir()
+            # Search initial library path
+            current_path = os.listdir(self.current_dir)
+            # alphabetically
+            current_path.sort(key=lambda y: y.lower())
+            # or by most recent modification date
+            # current_path.sort(key=lambda s: os.path.getmtime(os.path.join(input_string, s)), reverse=True)
+            print('Searching ' + self.source)
+            for files in current_path:
                 if os.path.isdir(os.path.join(source_dir, files)):
                     self.foldersearch(os.path.join(source_dir, files))
                 else:
                     self.filecheck(os.path.join(source_dir, files))
+
+    def currentdir(self):
+        """ print the current directory being searched after a time limit """
+        self.nowtime = int(time.time())
+        if not self.lasttime:
+            self.lasttime = int(time.time())
+        if int(self.nowtime - self.lasttime) > 10:
+            self.lasttime = self.nowtime
+            self.nowtime = int(time.time())
+            print('Searching ' + self.current_dir.replace(self.source, ''))
 
 
 GETLOCALIMAGES()
