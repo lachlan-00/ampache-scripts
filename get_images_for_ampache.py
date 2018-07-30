@@ -160,8 +160,8 @@ class GETLOCALIMAGES:
         """ get the album id from the database matching the filename """
         albumsearch = ('SELECT DISTINCT album FROM song WHERE file LIKE \'' +
                        source_dir.replace("'", "\\'").replace(self.source, '%') + '%\'')
-        cursor = self.cnx.cursor(buffered=True)
         try:
+            cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albumsearch)
             for row in cursor:
                 #return row[0]
@@ -174,14 +174,19 @@ class GETLOCALIMAGES:
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albumsearch)
             pass
+        except ConnectionResetError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albumsearch)
+            pass
         return None
 
     def insertalbum(self, album):
         """ check the database for an existing line and insert if missing """
         albumcheck = ('SELECT `object_id` FROM `image` WHERE `object_type` = \'album\' AND `object_id` = '
                       + str(album) + ';')
-        checkcursor = self.cnx.cursor(buffered=True)
         try:
+            checkcursor = self.cnx.cursor(buffered=True)
             checkcursor.execute(albumcheck)
             for row in checkcursor:
                 if row[0] == album:
@@ -191,13 +196,18 @@ class GETLOCALIMAGES:
             pass
         except BrokenPipeError:
             self.checkdbconn()
-            cursor = self.cnx.cursor(buffered=True)
-            cursor.execute(albumcheck)
+            checkcursor = self.cnx.cursor(buffered=True)
+            checkcursor.execute(albumcheck)
+            pass
+        except ConnectionResetError:
+            self.checkdbconn()
+            checkcursor = self.cnx.cursor(buffered=True)
+            checkcursor.execute(albumcheck)
             pass
         albuminsert = ('INSERT INTO `image` (`id`, `image`, `mime`, `size`, `object_type`, `object_id`, `kind`) ' +
                        'VALUES (\'0\', %s, \'image/png\', \'original\', \'album\', ' + str(album) + ', \'default\');')
-        cursor = self.cnx.cursor(buffered=True)
         try:
+            cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albuminsert, (self.binarydata, ))
             if cursor.lastrowid != 0:
                 print('Inserted ' + str(album))
@@ -205,6 +215,13 @@ class GETLOCALIMAGES:
             print('ERROR WITH QUERY:\n' + albuminsert)
             pass
         except BrokenPipeError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albuminsert, (self.binarydata, ))
+            if cursor.lastrowid != 0:
+                print('Inserted ' + str(album))
+            pass
+        except ConnectionResetError:
             self.checkdbconn()
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albuminsert, (self.binarydata, ))
