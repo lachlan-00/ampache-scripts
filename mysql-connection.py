@@ -149,18 +149,34 @@ notfoundlist = []
 cnx = None
 if not process == 'check':
     time.sleep(5)
-    print('creating database connection')
+    # Create a new DB connection
+    print('\nCreating Database connection\n')
     try:
         cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                      host=dbhost, database=dbname)
+                                      host=dbhost, database=dbname, connection_timeout=5)
+        print('Connected')
     except mysql.connector.errors.InterfaceError:
         try:
             cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
                                                              password=dbpass,
                                                              host=dbhost,
-                                                             database=dbname)
+                                                             database=dbname, connection_timeout=5)
+            print('Connected')
         except mysql.connector.errors.InterfaceError:
             pass
+#
+# Try to get through with ssh fowarding
+#
+# eg. ssh -L 3306:localhost:3306 externalhost
+#
+if not cnx:
+    print("Trying localhost DB connections")
+    try:
+        cnx = mysql.connector.connect(user=dbuser, password=dbpass,
+                                      host='127.0.0.1', database=dbname, connection_timeout=5)
+        print('Connected')
+    except mysql.connector.errors.InterfaceError:
+        pass
 if cnx:
     print('Connection Established\n')
     cursor = cnx.cursor()

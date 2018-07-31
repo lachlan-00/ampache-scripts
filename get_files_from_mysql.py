@@ -142,16 +142,19 @@ if destination:
         destination = None
     # Connect to the mysql database
     time.sleep(5)
-    print('Creating database connection\n')
+    # Create a new DB connection
+    print('\nCreating Database connection\n')
     try:
         cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                      host=dbhost, database=dbname)
+                                      host=dbhost, database=dbname, connection_timeout=5)
+        print('Connected')
     except mysql.connector.errors.InterfaceError:
         try:
             cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
                                                              password=dbpass,
                                                              host=dbhost,
-                                                             database=dbname)
+                                                             database=dbname, connection_timeout=5)
+            print('Connected')
         except mysql.connector.errors.InterfaceError:
             print("db connection fail")
             pass
@@ -161,10 +164,11 @@ if destination:
     # eg. ssh -L 3306:localhost:3306 externalhost
     #
     if not cnx:
-        print("trying localhost DB connections")
+        print("Trying localhost DB connections")
         try:
             cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                          host='127.0.0.1', database=dbname, connection_timeout=10)
+                                          host='127.0.0.1', database=dbname, connection_timeout=5)
+            print('Connected')
         except mysql.connector.errors.InterfaceError:
             pass
 else:

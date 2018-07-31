@@ -107,7 +107,7 @@ class MERGEAMPBOX:
             return None
         """ Run program """
         self.findsettings()
-        self.connectdb()
+        self.checkdbconn()
         self.backuprbdb()
 
         # Total playcount for songs in ampache db
@@ -128,6 +128,8 @@ class MERGEAMPBOX:
         if not self.cnx:
             print('\nNO CONNECTION TO MYSQL\n')
             return False
+        self.playcursor = self.cnx.cursor(buffered=True)
+        self.ratingcursor = self.cnx.cursor(buffered=True)
         # current rating for songs in ampache db
         self.ratingquery = ('SELECT DISTINCT song.title, artist.name, album.name, ' +
                             'CASE WHEN song.mbid IS NULL THEN \'\' ELSE song.mbid END as smbid, ' +
@@ -175,8 +177,12 @@ class MERGEAMPBOX:
 
     def findsettings(self):
         """ get settings for database """
+        if not os.path.isfile(self.settings):
+            self.settings = os.path.join(os.path.dirname(os.path.relpath(__file__)), self.settings)
+        if not os.path.isfile(self.settings):
+            self.settings = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.settings)
         if os.path.isfile(self.settings):
-            print('found settings file\n')
+            print('Found settings file')
             with open(self.settings, 'r') as csvfile:
                 openfile = csv.reader(csvfile)
                 for row in openfile:
@@ -201,34 +207,44 @@ class MERGEAMPBOX:
                             self.replace = row[1]
             csvfile.close()
 
-    def connectdb(self):
-        """ Connect to MYSQL database """
-        time.sleep(5)
-        print("Connect to MYSQL...")
-
-        try:
-            self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
-                                               host=self.dbhost, database=self.dbname,
-                                               connection_timeout=10)
-        except mysql.connector.errors.InterfaceError:
+    def checkdbconn(self):
+        """ Maintain database connection """
+        if self.cnx:
+            # Check existing connection
+            if self.cnx.is_connected():
+                return
+            if not self.cnx.is_connected():
+                print('\nError: Reconnecting to database\n')
+                self.cnx.reconnect(attempts=4, delay=4)
+                return
+        if not self.cnx:
+            time.sleep(5)
+            # Create a new DB connection
+            print('\nCreating Database connection')
             try:
-                self.cnx = mysql.connector.connection.MySQLConnection(user=self.dbuser,
-                                                                      password=self.dbpass,
-                                                                      host=self.dbhost,
-                                                                      database=self.dbname,
-                                                                      connection_timeout=10)
+                self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
+                                                   host=self.dbhost, database=self.dbname, connection_timeout=5)
+                print('Connected')
             except mysql.connector.errors.InterfaceError:
-                pass
+                try:
+                    self.cnx = mysql.connector.connection.MySQLConnection(user=self.dbuser,
+                                                                          password=self.dbpass,
+                                                                          host=self.dbhost,
+                                                                          database=self.dbname, connection_timeout=5)
+                    print('Connected')
+                except mysql.connector.errors.InterfaceError:
+                    pass
         #
         # Try to get through with ssh fowarding
         #
         # eg. ssh -L 3306:localhost:3306 externalhost
         #
         if not self.cnx:
-            print("trying localhost DB connections")
+            print("Trying localhost DB connections")
             try:
                 self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
-                                                   host='127.0.0.1', database=self.dbname, connection_timeout=10)
+                                                   host='127.0.0.1', database=self.dbname, connection_timeout=5)
+                print('Connected')
             except mysql.connector.errors.InterfaceError:
                 pass
 
@@ -246,39 +262,52 @@ class MERGEAMPBOX:
         return
 
     def execute(self, query, querytype):
-        """ query ampache mysql database """
-        cnxset = None
+        """ query ampache MySQL database """
         if self.cnx and self.rbbackup and querytype == 'play-count':
-            cnxset = False
-            cnxcount = 0
-            while not cnxset and cnxcount < 3:
-                cnxcount = cnxcount + 1
-                try:
-                    self.playcursor = self.cnx.cursor()
-                    self.playcursor.execute(query)
-                    print('Connection Established\n')
-                    cnxset = True
-                except mysql.connector.errors.ProgrammingError:
-                    print('ERROR WITH QUERY:\n' + query)
-                except mysql.connector.errors.OperationalError:
-                    print('Connection lost... retrying')
-                    self.connectdb()
+            try:
+                self.playcursor = self.cnx.cursor(buffered=True)
+                self.playcursor.execute(query)
+            except mysql.connector.errors.ProgrammingError:
+                print('ERROR WITH QUERY:\n' + albumsearch)
+                pass
+            except BrokenPipeError:
+                self.checkdbconn()
+                self.playcursor = self.cnx.cursor(buffered=True)
+                self.playcursor.execute(query)
+                pass
+            except ConnectionResetError:
+                self.checkdbconn()
+                self.playcursor = self.cnx.cursor(buffered=True)
+                self.playcursor.execute(query)
+                pass
+            except mysql.connector.errors.OperationalError:
+                self.checkdbconn()
+                self.playcursor = self.cnx.cursor(buffered=True)
+                self.playcursor.execute(query)
+                pass
         elif self.cnx and self.rbbackup and querytype == 'rating':
-            cnxset = False
-            cnxcount = 0
-            while not cnxset and cnxcount < 4:
-                cnxcount = cnxcount + 1
-                try:
-                    self.ratingcursor = self.cnx.cursor()
-                    self.ratingcursor.execute(query)
-                    print('Connection Established\n')
-                    cnxset = True
-                except mysql.connector.errors.ProgrammingError:
-                    print('ERROR WITH QUERY:\n' + query)
-                except mysql.connector.errors.OperationalError:
-                    print('Connection lost... retrying')
-                    self.connectdb()
-        if cnxset:
+            try:
+                self.ratingcursor = self.cnx.cursor(buffered=True)
+                self.ratingcursor.execute(query)
+            except mysql.connector.errors.ProgrammingError:
+                print('ERROR WITH QUERY:\n' + query)
+                pass
+            except BrokenPipeError:
+                self.checkdbconn()
+                self.ratingcursor = self.cnx.cursor(buffered=True)
+                self.ratingcursor.execute(query)
+                pass
+            except ConnectionResetError:
+                self.checkdbconn()
+                self.ratingcursor = self.cnx.cursor(buffered=True)
+                self.ratingcursor.execute(query)
+                pass
+            except mysql.connector.errors.OperationalError:
+                self.checkdbconn()
+                self.ratingcursor = self.cnx.cursor(buffered=True)
+                self.ratingcursor.execute(query)
+                pass
+        if self.cnx.is_connected():
             self.fillrbcache()
         else:
             return False
@@ -313,10 +342,10 @@ class MERGEAMPBOX:
                     self.rbfilecache.append('%(location)s' % filedata)
 
     def mergeintorb(self, query, querytype):
-        """ Merge mysql data into rhythmdb.xml """
+        """ Merge MySQL data into rhythmdb.xml """
         try:
             if query:
-                print('Processing rhythmdb ' + querytype + '\'s using mysql\n')
+                print('Processing rhythmdb ' + querytype + '\'s using MySQL\n')
                 changemade = False
                 for row in query:
                     mergeplays = False
@@ -353,18 +382,18 @@ class MERGEAMPBOX:
                                     mergeplays = True
                                 elif not str(info.text) == str(row[6]):
                                     changemade = True
-                                    print('Updating ' + querytype + ' for', row[0], 'from ' + tmpplay + ' to', row[6])
+                                    print('Update: ' + querytype + ' for', row[0], 'from ' + tmpplay + ' to', row[6])
                                     info.text = str(row[6])
                                     mergeplays = True
                         if not mergeplays:
                             changemade = True
-                            print('Inserting ' + querytype + ' for', row[0], 'as', row[6])
+                            print('Insert: ' + querytype + ' for', row[0], 'as', row[6])
                             insertplaycount = etree.SubElement(entry, querytype)
                             insertplaycount.text = str(row[6])
                 if changemade:
-                    print(querytype + 's from mysql have been inserted into the database.\n')
+                    print(querytype + 's from MySQL have been inserted into the database.')
                     # Save changes
-                    print('saving changes')
+                    print('saving changes...\n')
                     output = etree.ElementTree(self.root)
                     output.write(os.path.expanduser(DB), encoding="utf-8")
                 else:
@@ -385,16 +414,12 @@ class MERGEAMPBOX:
                 self.mergeintorb(self.ratingcursor, 'rating')
 
     def mergeintoamp(self, querytype):
-        """ Merge rhythmdb.xml data into mysql """
+        """ Merge rhythmdb.xml data into MySQL """
         self.fillrbcache()
-        print('Processing mysql ' + querytype + '\'s using rhythmbox\n')
+        print('Processing MySQL ' + querytype + '\'s using rhythmbox\n')
         for entry in self.items:
             tmpvalue = None
             tmpsong = None
-            # tmpartist = None
-            # tmpalbum = None
-            # tmptrack = None
-            tmpdisc = None
             tmppath = None
             rowchanged = 0
             for info in entry:
@@ -404,18 +429,8 @@ class MERGEAMPBOX:
                         tmpvalue = str(info.text)
                 if info.tag == 'title':
                     tmpsong = str(info.text)
-                # if info.tag == 'artist':
-                #     tmpartist = str(info.text)
-                # if info.tag == 'album':
-                #     tmpalbum = str(info.text)
-                # if info.tag == 'track-number':
-                #     tmptrack = str(info.text)
-                if info.tag == 'disc-number':
-                    tmpdisc = str(info.text)
                 if info.tag == 'location':
                     tmppath = urllib.parse.unquote(info.text).lower().replace('file://', '').replace("'", "\\'")
-            if tmpdisc is None:
-                tmpdisc = '0'
             if tmpvalue:
                 # Set insert query
                 insertpathquery = ('INSERT INTO rating (`user`, `object_type`, `object_id`, `rating`) ' +
@@ -424,21 +439,49 @@ class MERGEAMPBOX:
                                    'FROM song ' +
                                    'LEFT JOIN artist on artist.id = song.artist ' +
                                    'LEFT JOIN album on album.id = song.album ' +
-                                   'WHERE LOWER(song.file) = \'' + tmppath.lower().replace(self.replace, self.find) + '\' AND ' +
-                                   'song.id NOT IN (SELECT rating.object_id from rating' +
+                                   'WHERE LOWER(song.file) = \'' + tmppath.lower().replace(self.replace, self.find) +
+                                   '\' AND song.id NOT IN (SELECT rating.object_id from rating' +
                                    ' WHERE rating.object_type = \'song\' and rating.user = ' + str(self.myid) + ');')
                 # insert into mysql
                 if self.cnx and self.rbbackup:
-                    insertcursor = self.cnx.cursor()
                     try:
+                        insertcursor = self.cnx.cursor(buffered=True)
                         insertcursor.execute(insertpathquery)
-                        # print(insertpathquery)
                         if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
-                            print('Inserted mysql ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                            print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
                             rowchanged = insertcursor.lastrowid
                     except mysql.connector.errors.ProgrammingError:
                         print('ERROR WITH QUERY:\n' + insertpathquery)
-
+                        insertcursor = self.cnx.cursor(buffered=True)
+                        insertcursor.execute(insertpathquery)
+                        if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
+                            print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                            rowchanged = insertcursor.lastrowid
+                        pass
+                    except BrokenPipeError:
+                        self.checkdbconn()
+                        insertcursor = self.cnx.cursor(buffered=True)
+                        insertcursor.execute(insertpathquery)
+                        if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
+                            print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                            rowchanged = insertcursor.lastrowid
+                        pass
+                    except ConnectionResetError:
+                        self.checkdbconn()
+                        insertcursor = self.cnx.cursor(buffered=True)
+                        insertcursor.execute(insertpathquery)
+                        if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
+                            print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                            rowchanged = insertcursor.lastrowid
+                        pass
+                    except mysql.connector.errors.OperationalError:
+                        self.checkdbconn()
+                        insertcursor = self.cnx.cursor(buffered=True)
+                        insertcursor.execute(insertpathquery)
+                        if insertcursor.lastrowid != 0 or insertcursor.lastrowid != rowchanged:
+                            print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
+                            rowchanged = insertcursor.lastrowid
+                        pass
 
 if __name__ == "__main__":
     MERGEAMPBOX()

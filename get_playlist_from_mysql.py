@@ -16,10 +16,8 @@ import codecs
 import csv
 import mimetypes
 import os
-import shutil
-import sys
+import time
 import mysql.connector
-import urllib.parse
 
 FINDPATH = '/mnt/music/'
 REPLACEPATH = '/home/user/Music/'
@@ -150,71 +148,57 @@ QUERIES = (("SELECT REPLACE(song.file, '" + FINDPATH + "', '" + REPLACEPATH + "'
             FOLDERPATH + '2ndchancealbums.m3u'))
 
 
-def foldersearch(input_string):
-    """ process dirs or run tag check for files (if mp3) """
-    if os.path.isdir(input_string):
-        current_path = os.listdir(input_string)
-        # alphabetically
-        # current_path.sort(key=lambda y: y.lower())
-        # sort by most recent modification date
-        current_path.sort(key=lambda s: os.path.getmtime(os.path.join(input_string, s)), reverse=True)
-        for pathfiles in current_path:
-            tmppath = os.path.join(input_string, pathfiles)
-            if os.path.isdir(tmppath):
-                foldersearch(tmppath)
-            elif os.path.isfile(tmppath):
-                # check mimetype for mp3 file
-                if mimetypes.guess_type(tmppath)[0] == 'audio/mpeg':
-                    # run filesearch
-                    filecheck(tmppath)
-                    # print(tmppath)
-
-
-def filecheck(input_string):
-    if input_string not in destinfiles:
-        print(input_string, ' does not belong here!')
-        os.remove(input_string)
-
-
 # Write to log file
 def log_processing(logfile, logmessage):
     """ Perform log operations """
     # Create if missing
     if not os.path.exists(logfile):
         print('creating')
-        files = codecs.open(logfile, "w", "utf8")
-        files.close()
-    files = codecs.open(logfile, "a", "utf8")
+        logname = codecs.open(logfile, "w", "utf8")
+        logname.close()
+    logname = codecs.open(logfile, "a", "utf8")
     try:
         logline = [logmessage]
-        files.write((u"".join(logline)) + u"\n")
+        logname.write((u"".join(logline)) + u"\n")
     except UnicodeDecodeError:
         print('LOG UNICODE ERROR')
         logline = [logmessage.decode('utf-8')]
-        files.write((u"".join(logline)) + u"\n")
-    files.close()
+        logname.write((u"".join(logline)) + u"\n")
+    logname.close()
 
 
 # Connect to the mysql database
-print('creating database connection\n')
-try:
-    cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                  host='localhost', database=dbname)
-except:
-    pass
+""" Maintain database connection """
 if not cnx:
+    time.sleep(5)
+    # Create a new DB connection
+    print('\nCreating Database connection\n')
     try:
         cnx = mysql.connector.connect(user=dbuser, password=dbpass,
-                                      host=dbhost, database=dbname)
+                                           host=dbhost, database=dbname, connection_timeout=5)
+        print('Connected')
     except mysql.connector.errors.InterfaceError:
         try:
             cnx = mysql.connector.connection.MySQLConnection(user=dbuser,
-                                                             password=dbpass,
-                                                             host=dbhost,
-                                                             database=dbname)
+                                                                  password=dbpass,
+                                                                  host=dbhost,
+                                                                  database=dbname, connection_timeout=5)
+            print('Connected')
         except mysql.connector.errors.InterfaceError:
-            print("db connection fail")
             pass
+#
+# Try to get through with ssh fowarding
+#
+# eg. ssh -L 3306:localhost:3306 externalhost
+#
+if not cnx:
+    print("Trying localhost DB connections")
+    try:
+        cnx = mysql.connector.connect(user=dbuser, password=dbpass,
+                                           host='127.0.0.1', database=dbname, connection_timeout=5)
+        print('Connected')
+    except mysql.connector.errors.InterfaceError:
+        pass
 # process query and copy results to the destination
 if cnx:
     print('Connection Established\n')
@@ -249,6 +233,4 @@ if cnx:
                     log_processing(outfile, song_line)
                     log_processing(outfile, files)
                     outcount = outcount + 1
-
-# cleanup
 

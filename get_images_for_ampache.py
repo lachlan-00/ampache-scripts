@@ -118,6 +118,7 @@ class GETLOCALIMAGES:
                 self.cnx.reconnect(attempts=4, delay=4)
                 return
         if not self.cnx:
+            time.sleep(5)
             # Create a new DB connection
             print('\nCreating Database connection\n')
             try:
@@ -157,10 +158,8 @@ class GETLOCALIMAGES:
         """ check connection then look & insert album art """
         self.checkdbconn()
         if self.cnx:
-            #tmpalbum = self.lookforalbum(source_dir)
+            # Look for album ID's where a song matches the path
             self.lookforalbum(source_dir)
-            #if tmpalbum:
-            #    self.insertalbum(tmpalbum)
         else:
             print('Connection Failed')
 
@@ -172,7 +171,7 @@ class GETLOCALIMAGES:
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albumsearch)
             for row in cursor:
-                #return row[0]
+                # insert albums for multiple disks if present
                 self.insertalbum(row[0])
         except mysql.connector.errors.ProgrammingError:
             print('ERROR WITH QUERY:\n' + albumsearch)
