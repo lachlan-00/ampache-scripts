@@ -41,7 +41,6 @@ class GETLOCALIMAGES:
         self.settings = 'settings.csv'
         self.artname = 'folder.jpg'
         self.nowtime = int(time.time())
-        self.count = 0
         self.load()
         self.lookforfiles(self.source)
 
@@ -110,8 +109,17 @@ class GETLOCALIMAGES:
 
     def checkdbconn(self):
         """ Maintain database connection """
+        if self.cnx:
+            # Check existing connection
+            if self.cnx.is_connected():
+                return
+            if not self.cnx.is_connected():
+                print('\nError: Reconnecting to database\n')
+                self.cnx.reconnect(attempts=4, delay=4)
+                return
         if not self.cnx:
-            print('creating database connection')
+            # Create a new DB connection
+            print('\nCreating Database connection\n')
             try:
                 self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
                                                    host=self.dbhost, database=self.dbname, connection_timeout=5)
@@ -131,7 +139,7 @@ class GETLOCALIMAGES:
         # eg. ssh -L 3306:localhost:3306 externalhost
         #
         if not self.cnx:
-            print("trying localhost DB connections")
+            print("Trying localhost DB connections")
             try:
                 self.cnx = mysql.connector.connect(user=self.dbuser, password=self.dbpass,
                                                    host='127.0.0.1', database=self.dbname, connection_timeout=5)
@@ -179,6 +187,11 @@ class GETLOCALIMAGES:
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albumsearch)
             pass
+        except mysql.connector.errors.OperationalError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albumsearch)
+            pass
         return None
 
     def insertalbum(self, album):
@@ -204,6 +217,11 @@ class GETLOCALIMAGES:
             checkcursor = self.cnx.cursor(buffered=True)
             checkcursor.execute(albumcheck)
             pass
+        except mysql.connector.errors.OperationalError:
+            self.checkdbconn()
+            checkcursor = self.cnx.cursor(buffered=True)
+            checkcursor.execute(albumcheck)
+            pass
         albuminsert = ('INSERT INTO `image` (`id`, `image`, `mime`, `size`, `object_type`, `object_id`, `kind`) ' +
                        'VALUES (\'0\', %s, \'image/png\', \'original\', \'album\', ' + str(album) + ', \'default\');')
         try:
@@ -222,6 +240,13 @@ class GETLOCALIMAGES:
                 print('Inserted ' + str(album))
             pass
         except ConnectionResetError:
+            self.checkdbconn()
+            cursor = self.cnx.cursor(buffered=True)
+            cursor.execute(albuminsert, (self.binarydata, ))
+            if cursor.lastrowid != 0:
+                print('Inserted ' + str(album))
+            pass
+        except mysql.connector.errors.OperationalError:
             self.checkdbconn()
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(albuminsert, (self.binarydata, ))
