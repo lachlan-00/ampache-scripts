@@ -25,6 +25,7 @@ dbuser = None
 dbpass = None
 dbhost = None
 dbname = None
+cnx = None
 myid = None
 csvfile = None
 printallrows = False
@@ -146,7 +147,7 @@ clearnotplayed = "UPDATE `song` SET played = 0 WHERE played = 1 and id not in (S
 notfoundcount = 0
 notfoundlist = []
 
-cnx = None
+
 if not process == 'check':
     time.sleep(5)
     # Create a new DB connection

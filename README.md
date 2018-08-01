@@ -28,6 +28,8 @@ REQUIREMENTS
 
 python3-mysql.connector
 
+# install using pip
+sudo pip3 install mysql-connector
 
 NEWS
 ----

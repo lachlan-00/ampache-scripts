@@ -20,7 +20,7 @@ import sys
 import time
 import mysql.connector
 import urllib.parse
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as ElementTree
 
 
 # Default paths for rhythmbox & the user
@@ -268,7 +268,7 @@ class MERGEAMPBOX:
                 self.playcursor = self.cnx.cursor(buffered=True)
                 self.playcursor.execute(query)
             except mysql.connector.errors.ProgrammingError:
-                print('ERROR WITH QUERY:\n' + albumsearch)
+                print('ERROR WITH QUERY:\n' + query)
                 pass
             except BrokenPipeError:
                 self.checkdbconn()
@@ -318,7 +318,7 @@ class MERGEAMPBOX:
             # search for plays by artist, track AND album
             # open the database
             print('Opening rhythmdb...\n')
-            self.root = etree.parse(os.path.expanduser(DB)).getroot()
+            self.root = ElementTree.parse(os.path.expanduser(DB)).getroot()
             self.items = [s for s in self.root.getiterator("entry")
                           if s.attrib.get('type') == 'song']
             if self.items and self.cnx:
@@ -388,13 +388,13 @@ class MERGEAMPBOX:
                         if not mergeplays:
                             changemade = True
                             print('Insert: ' + querytype + ' for', row[0], 'as', row[6])
-                            insertplaycount = etree.SubElement(entry, querytype)
+                            insertplaycount = ElementTree.SubElement(entry, querytype)
                             insertplaycount.text = str(row[6])
                 if changemade:
                     print(querytype + 's from MySQL have been inserted into the database.')
                     # Save changes
                     print('saving changes...\n')
-                    output = etree.ElementTree(self.root)
+                    output = ElementTree.ElementTree(self.root)
                     output.write(os.path.expanduser(DB), encoding="utf-8")
                 else:
                     print('No ' + querytype + ' changed')
@@ -482,6 +482,7 @@ class MERGEAMPBOX:
                             print('MySQL Insert: ' + querytype + ' for', tmpsong, 'as', tmpvalue)
                             rowchanged = insertcursor.lastrowid
                         pass
+
 
 if __name__ == "__main__":
     MERGEAMPBOX()
