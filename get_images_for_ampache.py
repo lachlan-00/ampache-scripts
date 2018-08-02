@@ -162,8 +162,10 @@ class GETLOCALIMAGES:
         if artist_name == 'Various Artists':
             return
         self.checkdbconn()
-        artistsearch = ('SELECT id FROM `artist` WHERE name =  \'' + artist_name.replace("'", "\\'") +
-                       '\' OR CONCAT(prefix, \' \', name) = \'' + artist_name + '\';')
+        artistsearch = ('SELECT id FROM `artist` WHERE name =  \'' +
+                        artist_name.replace("'", "\\'") +
+                        '\' OR CONCAT(prefix, \' \', name) = \'' +
+                        artist_name.replace("'", "\\'") + '\';')
         try:
             cursor = self.cnx.cursor(buffered=True)
             cursor.execute(artistsearch)
