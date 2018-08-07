@@ -19,7 +19,7 @@ There are now five scripts in the project with separate uses:
      Insert play totals and ratings into rhythmbox using
      Ampache queries as a master source.
 
- * mysql-connection.py
+ * update_ampache_from_file.py
      Insert data from Last.fm into your ampache database.
 
 
@@ -63,7 +63,7 @@ After the sync it will clean up old files that shouldn't be there.
 This is helpful if you change ratings but will remove any files other than music from the destination.
 
 
-ABOUT mysql-connection.py
+ABOUT update_ampache_from_file.py
 -------------------------
 I have used Last.fm for a a decade and i want to move away to a private solution.
 
@@ -85,10 +85,10 @@ USAGE
  * Get a dump for your username.
      python3 ./lastexport3.py -u your_lastfm_username -o dump.txt
  * Run the merge script and get an output dump of bad matches
-    python3 ./mysql-connection.py > output.txt
+    python3 ./update_ampache_from_file.py > output.txt
 
 You can also set a specifiv file name using arguments
-    python3 ./mysql-connection.py /d:dump.txt > output.txt
+    python3 ./update_ampache_from_file.py /d:dump.txt > output.txt
 
 I've added a new argument /all
 This will print all rows from the input file
