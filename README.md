@@ -5,7 +5,7 @@ There are now five scripts in the project with separate uses:
 
  * get_files_from_mysql.py
      Query ampache database for top rated songs and copy
-     to desired path.
+     files to desired path.
 
  * get_images_for_ampache.py
      This script will examine a path for art (currently only 'folder.jpg')
@@ -18,6 +18,10 @@ There are now five scripts in the project with separate uses:
  * merge-with-rhythmbox.py
      Insert play totals and ratings into rhythmbox using
      Ampache queries as a master source.
+
+     * MYSQL <-> rhythmbox (default)
+     * MYSQL -> rhythmbox (using /torb)
+     * rhythmbox -> MYSQL (using /tomysql)
 
  * update_ampache_from_file.py
      Insert data from Last.fm into your ampache database.

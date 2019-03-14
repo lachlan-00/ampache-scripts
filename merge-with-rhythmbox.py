@@ -27,19 +27,28 @@ import xml.etree.ElementTree as ElementTree
 HOMEFOLDER = os.getenv('HOME')
 PATH = '/.local/share/rhythmbox/'
 DB = (HOMEFOLDER + PATH + 'rhythmdb.xml')
-# Test # DB = (HOMEFOLDER + PATH + 'rhythmdb-test.xml')
 DBBACKUPPATH = (HOMEFOLDER + PATH + 'rhythmdb-backup-merge.xml')
 
+# By default there is a two way sync between rhythmbox and MYSQL
+# using MYSQL as the primary source.
+#
+# First MYSQL -> rhythmbox (which will overwrite conflicting rhythmbox data)
+# Then rhythmbox -> MYSQL looking for missing information
+#
 # Skip sections by using the following arguments
 #
-# /toRB (Only sync to rhythmbox)
-# /toMYSQL (Send data to MYSQL only)
+# /toRB (Sync MYSQL -> rhythmbox)
+# /toMYSQL (Sync rhythmbox -> MYSQL)
 # -h, --h (Show help)
 TORB = False
 TOMYSQL = False
 HELP = False
-HELPMSG = ('\n# Skip sections by using the following arguments\n ' +
-           '  /toRB (Only sync to rhythmbox)\n   /toMYSQL (Send data to MYSQL only)\n')
+HELPMSG = ('\n# By default there is a two way sync between rhythmbox and MYSQL\n' +
+           '# using MYSQL as the primary source.\n\n# First MYSQL -> rhythmbox' +
+           '(which will overwrite conflicting rhythmbox data)\n' +
+           '# Then rhythmbox -> MYSQL looking for missing information\n\n' +
+           '# Skip sections by using the following arguments\n ' +
+           '  /toRB (Sync MYSQL -> rhythmbox)\n   /toMYSQL (Sync rhythmbox -> MYSQL)\n')
 
 for arguments in sys.argv:
     if arguments[:5].lower() == '/torb':

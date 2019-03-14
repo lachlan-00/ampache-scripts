@@ -30,6 +30,7 @@ myid = None
 csvfile = None
 printallrows = False
 printerrors = False
+printchanges = False
 settings = 'settings.csv'
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
@@ -51,7 +52,9 @@ for arguments in sys.argv:
         printallrows = True
     if arguments[:7] == '/silent':
         printallrows = False
-    if arguments[:7] == '/errors':
+    if arguments[:8] == '/changes':
+        printchanges = True
+    if arguments[:7] == '/errors' or arguments[:6] == '/error':
         printerrors = True
     if arguments[:3] == '/c:':
         process = 'check'
@@ -252,14 +255,6 @@ if cnx:
                         # missing all the rows in the tsv
                         pass
 
-                    # print rows as they are processed. (good for piping)
-                    if printallrows:
-                        print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
-                              '\t' + str(trackmbid).replace("None", "") +
-                              '\t' + str(artistmbid).replace("None", "") +
-                              '\t' + str(albummbid).replace("None", "") +
-                              '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
-
                     # search ampache db for song, album and artist
                     # Look for a musicbrainz ID before the text of the tags
                     # This should hopefully be more reliable if your tags change a lot
@@ -282,21 +277,17 @@ if cnx:
                             tmpsong = str(rows[0])
                             tmpalbum = str(rows[1])
                             tmpartist = str(rows[2])
-                    if not rowtrack or not rowartist or not rowalbum:
+                    if not rowtrack or not rowartist:
                         pass
-                    elif (not tmpsong or not tmpartist or not tmpalbum) and rowtrack and rowartist and rowalbum:
+                    elif (not tmpsong or not tmpartist or not tmpalbum) and (rowtrack or rowartist or rowalbum):
                         # find missing data if the mbid didn't work
-                        if not tmpsong and not tmpartist and not tmpalbum:
+                        if (not tmpsong and not tmpartist and not tmpalbum) and (rowtrack and rowartist and rowalbum):
                             tmpquery = ("SELECT `song`.`id`, `album`.`id`, `artist`.`id` " +
                                         "FROM `song` INNER JOIN album ON `song`.`album` = `album`.`id` " +
                                         "INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "WHERE LOWER(`song`.`title`) = LOWER('" + rowtrack.replace("'", "''") +
-                                        "') AND CASE WHEN album.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
-                                        "END = LOWER('" + rowalbum.replace("'", "''") +
-                                        "') AND CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                        "END = LOWER('" + rowartist.replace("'", "''") + "');")
+                                        "') AND LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" + rowalbum.replace("'", "''") +
+                                        "') AND LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" + rowartist.replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -329,9 +320,7 @@ if cnx:
                             tmpquery = ("SELECT `song`.`id`, `artist`.`id` " +
                                         "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "WHERE LOWER(`song`.`title`) = LOWER('" + rowtrack.replace("'", "''") +
-                                        "') AND CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                        "END = LOWER('" + rowartist.replace("'", "''") + "');")
+                                        "') AND LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" + rowartist.replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -362,12 +351,8 @@ if cnx:
                             tmpquery = ("SELECT `song`.`id`, `artist`.`id` " +
                                         "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "INNER JOIN album ON `song`.`album` = `album`.`id` " +
-                                        "WHERE CASE WHEN album.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
-                                        "END = LOWER('" + rowalbum.replace("'", "''") +
-                                        "') AND CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                        "END = LOWER('" + rowartist.replace("'", "''") + "');")
+                                        "WHERE LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" + rowalbum.replace("'", "''") +
+                                        "') AND LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" + rowartist.replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -397,9 +382,7 @@ if cnx:
                             tmpquery = ("SELECT `song`.`id`, `album`.`id` " +
                                         "FROM `song` INNER JOIN album ON `song`.`album` = `album`.`id` " +
                                         "WHERE LOWER(`song`.`title`) = LOWER('" + rowtrack.replace("'", "''") +
-                                        "') AND CASE WHEN album.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(album.prefix, ' ', album.name)) ELSE LOWER(album.name) " +
-                                        "END = LOWER('" + rowalbum.replace("'", "''") + "');")
+                                        "') AND LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" + rowalbum.replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -410,14 +393,30 @@ if cnx:
                                     tmpsong = str(rows[0])
                                 if not tmpalbum:
                                     tmpalbum = str(rows[1])
+                        if not tmpalbum and (rowtrack and rowartist):
+                            tmpquery = ("SELECT `album` FROM `song` WHERE LOWER(song.title) = LOWER('" +
+                                        rowtrack.replace("'", "''") +
+                                        "') AND song.artist in (SELECT id from artist WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" +
+                                        rowartist.replace("'", "''") + "'));")
+                            # Check the database
+                            try:
+                                tmpresult = None
+                                cursor.execute(tmpquery)
+                                tmpresult = cursor.fetchall()
+                            except mysql.connector.errors.ProgrammingError:
+                                print('ERROR WITH QUERY:\n' + tmpquery)
+                            # only want one album
+                            if cursor.with_rows and len(tmpresult) == 1:
+                                for rows in tmpresult:
+                                    tmpalbum = rows[0]
+                            tmpresult = None
                         # try individuals
-                        if not tmpsong:
+                        if not tmpsong and  (rowtrack and rowartist and rowalbum):
                             tmpquery = ("SELECT `id` FROM `song` WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") +
-                                        "') AND artist in (SELECT id from artist WHERE CASE when prefix IS NOT NULL " +
-                                        "THEN LOWER(CONCAT(prefix, ' ', name)) ELSE LOWER(name) END = LOWER('" +
+                                        "') AND artist in (SELECT id from artist WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" +
                                         rowartist.replace("'", "''") + "')) AND " +
-                                        "album in (SELECT id from album WHERE LOWER(`name`) = LOWER('" +
+                                        "album in (SELECT id from album WHERE LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" +
                                         rowalbum.replace("'", "''") + "'));")
                             # Check the database
                             try:
@@ -428,12 +427,12 @@ if cnx:
                                 tmpsong = rows[0]
 
                         # Check for the album
-                        if not tmpalbum:
-                            tmpquery = ("SELECT `id` FROM `album` WHERE LOWER(`name`) = LOWER('" +
+                        if not tmpalbum and (rowtrack and rowartist and rowalbum):
+                            tmpquery = ("SELECT `id` FROM `album` WHERE LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" +
                                         rowalbum.replace("'", "''") +
                                         "') AND id in (SELECT album from song WHERE LOWER(`title`) = LOWER('" +
                                         rowtrack.replace("'", "''") +
-                                        "')) AND album_artist in (SELECT id from artist WHERE LOWER(`name`) = LOWER('" +
+                                        "')) AND album_artist in (SELECT id from artist WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" +
                                         rowartist.replace("'", "''") + "'));")
                             # Check the database
                             try:
@@ -461,7 +460,7 @@ if cnx:
                                         "FROM `song` INNER JOIN artist ON `song`.`artist` = `artist`.`id` " +
                                         "INNER JOIN album ON `song`.`album` = `album`.`id` " +
                                         "WHERE `song`.`title` = '" + str(rowtrack).replace("'", "''") + "' AND " +
-                                        "`album`.`name` = '" + str(rowalbum).replace("'", "''") + "';")
+                                        "LOWER(CONCAT_WS(' ', album.prefix, album.name)) = LOWER('" + str(rowalbum).replace("'", "''") + "');")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -470,9 +469,7 @@ if cnx:
                             for rows in cursor:
                                 tmpartist = str(rows[0])
                         if not tmpartist:
-                            tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                        "END = LOWER('" + rowartist.replace("'", "''") + "')")
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" + rowartist.replace("'", "''") + "')")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -492,9 +489,7 @@ if cnx:
                                 tmpartist = rows[0]
                         # search ampache using name for artist
                         if not tmpartist and row[2]:
-                            tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL THEN " +
-                                        "LOWER(CONCAT(artist.prefix, ' ', artist.name)) ELSE LOWER(artist.name) " +
-                                        "END = LOWER('" + rowartist.replace("'", "''") + "')")
+                            tmpquery = ("SELECT `id` FROM `artist` WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" + rowartist.replace("'", "''") + "')")
                             # Check the database
                             try:
                                 cursor.execute(tmpquery)
@@ -555,9 +550,7 @@ if cnx:
                                     tmpcount += 1
                                 # if you get a various artist you will want the song artist instead
                                 tmpcount = 0
-                                tmpquery = ("SELECT `id` FROM `artist` WHERE CASE WHEN artist.prefix IS NOT NULL " +
-                                            "THEN LOWER(CONCAT(artist.prefix, ' ', artist.name)) " +
-                                            "ELSE LOWER(artist.name)  END = LOWER('" +
+                                tmpquery = ("SELECT `id` FROM `artist` WHERE LOWER(CONCAT_WS(' ', artist.prefix, artist.name)) = LOWER('" +
                                             rowartist.replace("'", "''") + "')")
                                 try:
                                     cursor.execute(tmpquery)
@@ -582,19 +575,12 @@ if cnx:
                                     print('ERROR WITH QUERY:\n' + tmpquery)
                                 for rows in cursor:
                                     tmpsong = rows[0]
-                        # print rows with missing data
-                        if (not tmpsong or not tmpartist or not tmpalbum) and printerrors:
-                            print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
-                                  '\t' + str(trackmbid).replace("None", "") +
-                                  '\t' + str(artistmbid).replace("None", "") +
-                                  '\t' + str(albummbid).replace("None", "") +
-                                  '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
                     # if you find all three values in the database
                     # we have an exact match
                     if tmpsong and tmpalbum and tmpartist:
-                        tmpsongsearch = None
-                        tmpartistsearch = None
-                        tmpalbumsearch = None
+                        tmpsongsearch = False
+                        tmpartistsearch = False
+                        tmpalbumsearch = False
 
                         # check for existing data that matches the ID's
                         tmpcursor = cnx.cursor()
@@ -606,11 +592,11 @@ if cnx:
                         except mysql.connector.errors.ProgrammingError:
                             print('ERROR WITH QUERY:\n' + checkdata)
                         for rows in tmpcursor:
-                            if rows[1] == 'song' and rows[2] == str(tmpsong):
+                            if rows[1] == 'song' and int(rows[2]) == int(tmpsong):
                                 tmpsongsearch = True
-                            if rows[1] == 'artist' and rows[2] == str(tmpartist):
+                            if rows[1] == 'artist' and int(rows[2]) == int(tmpartist):
                                 tmpartistsearch = True
-                            if rows[1] == 'album' and rows[2] == str(tmpalbum):
+                            if rows[1] == 'album' and int(rows[2]) == int(tmpalbum):
                                 tmpalbumsearch = True
 
                         # remove old data if correct play not found
@@ -651,21 +637,32 @@ if cnx:
                             # insert new play
                             try:
                                 tmpcursor.execute(insertsong)
+                                #print(tmpcursor.lastrowid)
                             except mysql.connector.errors.ProgrammingError:
                                 print('ERROR WITH QUERY:\n' + insertsong)
                             try:
                                 tmpcursor.execute(insertalbum)
+                                #print(tmpcursor.lastrowid)
                             except mysql.connector.errors.ProgrammingError:
                                 print('ERROR WITH QUERY:\n' + insertalbum)
                             try:
                                 tmpcursor.execute(insertartist)
+                                #print(tmpcursor.lastrowid)
                             except mysql.connector.errors.ProgrammingError:
                                 print('ERROR WITH QUERY:\n' + insertartist)
 
                             # make sure song is set to played
                             tmpcursor.execute(setplayed)
-                        else:
-                            print('found\n', row)
+                            if printchanges:
+                                print('INSERTED')
+                                print(row)
+
+                    if printallrows or ((not tmpsong or not tmpartist or not tmpalbum) and printerrors):
+                        print(str(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\t' + str(row[3]) +
+                                '\t' + str(trackmbid).replace("None", "") +
+                                '\t' + str(artistmbid).replace("None", "") +
+                                '\t' + str(albummbid).replace("None", "") +
+                                '\t' + str(tmpsong) + '\t' + str(tmpartist) + '\t' + str(tmpalbum))
 
     # Clear songs of played status if they haven't been played
     try:
