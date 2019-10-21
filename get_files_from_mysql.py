@@ -85,6 +85,8 @@ for arguments in sys.argv:
         depth = int(arguments[3:])
 
 # get settings for database
+if os.path.isfile('mysettings.csv'):
+    SETTINGS = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'mysettings.csv')
 if not os.path.isfile(SETTINGS):
     SETTINGS = os.path.join(os.path.dirname(os.path.relpath(__file__)), SETTINGS)
 if not os.path.isfile(SETTINGS):

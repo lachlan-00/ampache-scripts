@@ -62,6 +62,8 @@ for arguments in sys.argv:
 
 
 # get settings for database
+if os.path.isfile('mysettings.csv'):
+    settings = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'mysettings.csv')
 if not os.path.isfile(settings):
     settings = os.path.join(os.path.dirname(os.path.relpath(__file__)), settings)
 if not os.path.isfile(settings):

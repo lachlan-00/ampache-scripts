@@ -19,4 +19,6 @@ outfolder,/home/user/playlists/
 
 # Ampache variables
 myid,2
-
+ampache_url,https://music
+ampache_user,user
+ampache_api,97677f7g2
