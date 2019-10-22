@@ -178,21 +178,24 @@ elif ampache_session and destination and not playlist_id == 0:
     #except mysql.connector.errors.ProgrammingError:
     #    print('ERROR WITH QUERY:\n' + tmpquery)
     songs = ampache.playlist_songs(ampache_url, ampache_session, playlist_id)
-    for rows in songs:
-        tmpsource = None
+    for child in songs:
+        if child.tag == 'total_count':
+            continue
         tmpdestin = None
-        files = rows[0].replace(find, replace)
-        artist = rows[1]
-        if os.path.isfile(files):
-            tmpsource = files
+        tmpsource = child.attrib['id']
+        file = child.find('filename').text
+        title = child.find('title').text
+        track = child.find('track').text
+        artist = child.find('artist').text
+        if tmpsource:
             if depth == 0:
-                tmpfile = artist.replace('/', '_') + '-' + (os.path.basename(tmpsource)).replace(' - ', '-')
+                tmpfile = artist.replace('/', '_') + '-' + (os.path.basename(file)).replace(' - ', '-')
             else:
                 count = 0
                 tmpdepth = 0 - depth
                 tmpfile = ''
                 while count < depth:
-                    tmpfile = os.path.join(tmpfile, os.path.dirname(files).split('/')[tmpdepth])
+                    tmpfile = os.path.join(tmpfile, os.path.dirname(file).split('/')[tmpdepth])
                     tmpdepth = tmpdepth + 1
                     count = count + 1
                 tmpfile = os.path.join(tmpfile, (os.path.basename(tmpsource)).replace(' - ', '-'))
@@ -202,6 +205,7 @@ elif ampache_session and destination and not playlist_id == 0:
                 tmpfile = tmpfile.replace(items, '')
             tmpdestin = tmpdestin.replace('sftphost=', 'sftp:host=')
             if not os.path.isdir(os.path.dirname(tmpdestin)):
+                print('Making destination', tmpdestin)
                 os.makedirs(os.path.dirname(tmpdestin))
             if not os.path.isfile(tmpdestin):
                 print('\nIN.....', tmpsource)
