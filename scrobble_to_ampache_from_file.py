@@ -13,11 +13,8 @@
 
 """
 
-import codecs
 import configparser
 import csv
-import os
-import hashlib
 import os
 import time
 import threading
