@@ -191,6 +191,8 @@ elif ampache_session and destination and not playlist_id == 0:
                     tmpdepth = tmpdepth + 1
                     count = count + 1
                 tmpfile = os.path.join(tmpfile, (os.path.basename(tmpsource)).replace(' - ', '-'))
+            # put the correct extension on the file
+            tmpfile = os.path.splitext(tmpfile)[0] + '.' + output_format
             tmpdestin = os.path.join(destination, tmpfile)
             for items in REPLACE:
                 tmpdestin = tmpdestin.replace(items, '')
