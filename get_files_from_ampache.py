@@ -44,6 +44,7 @@ myid = None
 
 listonly = False
 playlist_id = 0
+output_format = 'mp3'
 
 # destination folder
 destination = None
@@ -53,6 +54,7 @@ replace = None
 # files that should be in the destination
 destinfiles = []
 
+print('\n-------------------------\nget_files_from_ampache.py\n-------------------------')
 
 def foldersearch(input_string):
     """ process dirs or run tag check for files (if mp3) """
@@ -100,7 +102,7 @@ if not os.path.isfile(SETTINGS):
 if not os.path.isfile(SETTINGS):
     SETTINGS = os.path.join(os.path.dirname(os.path.realpath(__file__)), SETTINGS)
 if os.path.isfile(SETTINGS):
-    print('Loading local settings file\n' + SETTINGS)
+    print('\nLoading local settings file: ' + SETTINGS + '\n')
     with open(SETTINGS, 'r') as csvfile:
         openfile = csv.reader(csvfile)
         for row in openfile:
@@ -115,6 +117,8 @@ if os.path.isfile(SETTINGS):
                     ampache_user = row[1]
                 elif row[0] == 'ampache_api':
                     ampache_api = row[1]
+                elif row[0] == 'output_format':
+                    output_format = row[1]
                 elif row[0] == 'myid':
                     myid = row[1]
                 elif row[0] == 'find':
@@ -136,11 +140,13 @@ if os.path.isfile(SETTINGS):
     csvfile.close()
 
 if destination:
+    if os.path.isdir(destination):
+        print('\nloading... ' + destination)
     # only continue if output is correct
-    if not os.path.isdir(destination):
+    else:
         destination = None
 else:
-    print('Missing Folder: ' + str(destination) + '\nDestination not found. use /d: to set an output path\n' +
+    sys.exit('Destination not found. use /d: to set an output path\n' +
           '\n   e.g. /media/user/USB/Music\n')
 
 """ ping ampache for auth key """
@@ -163,20 +169,6 @@ if ampache_session and (listonly or playlist_id == 0):
 elif ampache_session and destination and not playlist_id == 0:
     print('Connection Established\n')
     #cursor = cnx.cursor()
-    tmpquery = ("SELECT song.file, artist.name, album.name, song.title " +
-                "FROM rating " +
-                "INNER JOIN song on rating.object_id = song.id AND " +
-                " rating.object_type = 'song' AND rating.user = " + str(myid) + " " +
-                "INNER JOIN artist on song.artist = artist.id " +
-                "INNER JOIN album on song.album = album.id " +
-                "WHERE song.id in (SELECT object_id FROM `rating` " +
-                "                  WHERE object_type = 'song' and user = " + str(myid) + " AND " +
-                "                        rating in (3,4,5))" +
-                "ORDER BY song.file")
-    #try:
-    #    cursor.execute(tmpquery)
-    #except mysql.connector.errors.ProgrammingError:
-    #    print('ERROR WITH QUERY:\n' + tmpquery)
     songs = ampache.playlist_songs(ampache_url, ampache_session, playlist_id)
     for child in songs:
         if child.tag == 'total_count':
@@ -212,7 +204,7 @@ elif ampache_session and destination and not playlist_id == 0:
                 try:
                     #shutil.copy2(tmpsource, tmpdestin)
                     ampache.ping(ampache_url, ampache_session)
-                    download = ampache.download(ampache_url, ampache_session, tmpsource, tmpdestin)
+                    download = ampache.download(ampache_url, ampache_session, tmpsource, 'song', tmpdestin, output_format)
                     if download != False:
                         print("downloaded", tmpsource, tmpdestin)
                     print('OUT....', tmpdestin)

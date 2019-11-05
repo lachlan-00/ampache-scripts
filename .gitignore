@@ -4,3 +4,4 @@
 *.pyc
 dump.txt
 mysettings.csv
+test/*
