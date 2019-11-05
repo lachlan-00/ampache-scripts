@@ -202,15 +202,14 @@ elif ampache_session and destination and not playlist_id == 0:
                 print('Making destination', tmpdestin)
                 os.makedirs(os.path.dirname(tmpdestin))
             if not os.path.isfile(tmpdestin):
-                print('\nIN.....', tmpsource)
+                print('\nIN.....', title)
                 try:
                     #shutil.copy2(tmpsource, tmpdestin)
                     ampache.ping(ampache_url, ampache_session)
                     download = ampache.download(ampache_url, ampache_session, tmpsource, 'song', tmpdestin, output_format)
                     if download != False:
-                        print("downloaded", tmpsource, tmpdestin)
-                    print('OUT....', tmpdestin)
-                    destinfiles.append(tmpdestin)
+                        print('OUT....', tmpdestin)
+                        destinfiles.append(tmpdestin)
                 except OSError:
                     print('\nFAIL...', files, '\n')
                     pass
