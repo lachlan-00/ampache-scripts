@@ -43,6 +43,7 @@ dbname = None
 myid = None
 
 listonly = False
+limitfolders = False
 playlist_id = 0
 output_format = 'mp3'
 
@@ -91,6 +92,8 @@ for arguments in sys.argv:
         depth = int(arguments[3:])
     if arguments[:5].lower() == '/list':
         listonly = True
+    if arguments[:5].lower() == '/255':
+        limitfolders = True
     if arguments[:3].lower() == '/p:':
         playlist_id = arguments[3:]
 
@@ -170,9 +173,12 @@ elif ampache_session and destination and not playlist_id == 0:
     print('Connection Established\n')
     #cursor = cnx.cursor()
     songs = ampache.playlist_songs(ampache_url, ampache_session, playlist_id)
+    foldercount = 0
+    basefolder = 0
     for child in songs:
         if child.tag == 'total_count':
             continue
+        foldercount = foldercount + 1
         tmpdestin = None
         tmpsource = child.attrib['id']
         file = child.find('filename').text
@@ -193,7 +199,10 @@ elif ampache_session and destination and not playlist_id == 0:
                 tmpfile = os.path.join(tmpfile, (os.path.basename(tmpsource)).replace(' - ', '-'))
             # put the correct extension on the file
             tmpfile = os.path.splitext(tmpfile)[0] + '.' + output_format
-            tmpdestin = os.path.join(destination, tmpfile)
+            if limitfolders:
+                tmpdestin = os.path.join(destination, str(basefolder), tmpfile)
+            else:
+                tmpdestin = os.path.join(destination, tmpfile)
             for items in REPLACE:
                 tmpdestin = tmpdestin.replace(items, '')
                 tmpfile = tmpfile.replace(items, '')
@@ -215,6 +224,9 @@ elif ampache_session and destination and not playlist_id == 0:
                     pass
             elif os.path.isfile(tmpdestin):
                 destinfiles.append(tmpdestin)
+            if foldercount == 255:
+                basefolder = basefolder + 1
+                foldercount = 0
         else:
             print('\nFAIL...', files, '\n')
 
