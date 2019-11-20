@@ -213,8 +213,6 @@ elif ampache_session and destination and not playlist_id == 0:
             if not os.path.isfile(tmpdestin):
                 print('\nIN.....', title)
                 try:
-                    #shutil.copy2(tmpsource, tmpdestin)
-                    ampache.ping(ampache_url, ampache_session)
                     download = ampache.download(ampache_url, ampache_session, tmpsource, 'song', tmpdestin, output_format)
                     if download != False:
                         print('OUT....', tmpdestin)
