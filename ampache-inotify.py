@@ -158,6 +158,6 @@ if ampache_session and destination:
     # process events).
     notifier = pyinotify.Notifier(wm)
     # Add a new watch on /tmp for ALL_EVENTS.
-    wm.add_watch('/tmp', pyinotify.ALL_EVENTS)
+    wm.add_watch(destination, pyinotify.ALL_EVENTS)
     # Loop forever and handle events.
     notifier.loop()
