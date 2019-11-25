@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-""" get ampache files from ampache
+""" monitor ampache library usgin the API
 
-  query ampache database for top rated songs to copy
-  --------------------------------------------------
+  Monitor your ampache libray/catalog and perform updates automatically
+  ---------------------------------------------------------------------
 
   This script will query your ampache database for top rated songs
   if can find the song by it's path it will copy to your destination
-
 """
 
 import configparser
@@ -18,6 +17,8 @@ import requests
 import shutil
 import sys
 import time
+
+import inotify
 
 import ampache
 
@@ -55,7 +56,7 @@ replace = None
 # files that should be in the destination
 destinfiles = []
 
-print('\n-------------------------\nget_files_from_ampache.py\n-------------------------')
+print('\n-------------------------\nampache-inotify.py\n-------------------------')
 
 def foldersearch(input_string):
     """ process dirs or run tag check for files (if mp3) """
@@ -88,14 +89,6 @@ def filecheck(input_string):
 for arguments in sys.argv:
     if arguments[:3].lower() == '/d:':
         destination = arguments[3:]
-    if arguments[:3].lower() == '/f:':
-        depth = int(arguments[3:])
-    if arguments[:5].lower() == '/list':
-        listonly = True
-    if arguments[:5].lower() == '/255':
-        limitfolders = True
-    if arguments[:3].lower() == '/p:':
-        playlist_id = arguments[3:]
 
 # get settings for database
 if os.path.isfile('mysettings.csv'):
@@ -149,90 +142,22 @@ if destination:
     else:
         destination = None
 else:
-    sys.exit('Destination not found. use /d: to set an output path\n' +
+    sys.exit('Library path not found. use /d: to set a library path\n' +
           '\n   e.g. /media/user/USB/Music\n')
 
 """ ping ampache for auth key """
 encrypted_key = ampache.encrypt_string(ampache_api, ampache_user)
 ampache_session = ampache.handshake(ampache_url, encrypted_key)
 
-if ampache_session and (listonly or playlist_id == 0):
-    playlists = ampache.playlists(ampache_url, ampache_session)
-    
-    for child in playlists:
-        if child.tag == 'playlist':
-            #playlist = ampache.playlist(ampache_url, ampache_session, child.attrib['id'])
-            print('\nid:    ', child.attrib['id'])
-            print('name:  ', child.find('name').text)
-            print('items: ', child.find('items').text)
-            print('type:  ', child.find('type').text)
-            print('owner: ', child.find('owner').text)
-            
+          
 # process query and copy results to the destination
-elif ampache_session and destination and not playlist_id == 0:
+if ampache_session and destination:
     print('Connection Established\n')
-    #cursor = cnx.cursor()
-    songs = ampache.playlist_songs(ampache_url, ampache_session, playlist_id)
-    foldercount = 0
-    basefolder = 0
-    for child in songs:
-        if child.tag == 'total_count':
-            continue
-        foldercount = foldercount + 1
-        tmpdestin = None
-        tmpsource = child.attrib['id']
-        file = child.find('filename').text
-        title = child.find('title').text
-        track = child.find('track').text
-        artist = child.find('artist').text
-        if tmpsource:
-            if depth == 0:
-                tmpfile = artist.replace('/', '_') + '-' + (os.path.basename(file)).replace(' - ', '-')
-            else:
-                count = 0
-                tmpdepth = 0 - depth
-                tmpfile = ''
-                while count < depth:
-                    tmpfile = os.path.join(tmpfile, os.path.dirname(file).split('/')[tmpdepth])
-                    tmpdepth = tmpdepth + 1
-                    count = count + 1
-                tmpfile = os.path.join(tmpfile, (os.path.basename(tmpsource)).replace(' - ', '-'))
-            # put the correct extension on the file
-            tmpfile = os.path.splitext(tmpfile)[0] + '.' + output_format
-            if limitfolders:
-                tmpdestin = os.path.join(destination, str(basefolder), tmpfile)
-            else:
-                tmpdestin = os.path.join(destination, tmpfile)
-            for items in REPLACE:
-                tmpdestin = tmpdestin.replace(items, '')
-                tmpfile = tmpfile.replace(items, '')
-            tmpdestin = tmpdestin.replace('sftphost=', 'sftp:host=')
-            if not os.path.isdir(os.path.dirname(tmpdestin)):
-                print('Making destination', tmpdestin)
-                os.makedirs(os.path.dirname(tmpdestin))
-            if not os.path.isfile(tmpdestin):
-                print('\nIN.....', title)
-                try:
-                    download = ampache.download(ampache_url, ampache_session, tmpsource, 'song', tmpdestin, output_format)
-                    if download != False:
-                        print('OUT....', tmpdestin)
-                        destinfiles.append(tmpdestin)
-                except OSError:
-                    print('\nFAIL...', files, '\n')
-                    pass
-            elif os.path.isfile(tmpdestin):
-                destinfiles.append(tmpdestin)
-            if foldercount == 255:
-                basefolder = basefolder + 1
-                foldercount = 0
-        else:
-            print('\nFAIL...', files, '\n')
+    i = inotify.adapters.inotify()
+    i.add_watch(destination)
 
-# cleanup
-if cnx and os.path.isdir(destination) and len(destinfiles) != 0:
-    for files in os.listdir(destination):
-        if os.path.isdir(os.path.join(destination, files)):
-            foldersearch(os.path.join(destination, files))
-        else:
-            filecheck(os.path.join(destination, files))
+    for event in i.event_gen(yield_nones=False):
+        (_, type_names, path, filename) = event
 
+        print("PATH=[{}] FILENAME=[{}] EVENT_TYPES={}".format(
+              path, filename, type_names))
