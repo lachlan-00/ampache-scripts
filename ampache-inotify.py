@@ -13,12 +13,11 @@ import configparser
 import csv
 import mimetypes
 import os
+import pyinotify
 import requests
 import shutil
 import sys
 import time
-
-import inotify
 
 import ampache
 
@@ -153,11 +152,12 @@ ampache_session = ampache.handshake(ampache_url, encrypted_key)
 # process query and copy results to the destination
 if ampache_session and destination:
     print('Connection Established\n')
-    i = inotify.adapters.inotify()
-    i.add_watch(destination)
-
-    for event in i.event_gen(yield_nones=False):
-        (_, type_names, path, filename) = event
-
-        print("PATH=[{}] FILENAME=[{}] EVENT_TYPES={}".format(
-              path, filename, type_names))
+    # Instanciate a new WatchManager (will be used to store watches).
+    wm = pyinotify.WatchManager()
+    # Associate this WatchManager with a Notifier (will be used to report and
+    # process events).
+    notifier = pyinotify.Notifier(wm)
+    # Add a new watch on /tmp for ALL_EVENTS.
+    wm.add_watch('/tmp', pyinotify.ALL_EVENTS)
+    # Loop forever and handle events.
+    notifier.loop()
