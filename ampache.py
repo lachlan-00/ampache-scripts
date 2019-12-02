@@ -3,7 +3,7 @@
 """ Copyright (C)2019
 Lachlan de Waard <lachlan.00@gmail.com>
 ---------------------------------------
-Ampache XML-Api v400001 for python3
+Ampache XML-Api 400002 for python3
 ---------------------------------------
 
  This program is free software: you can redistribute it and/or modify
@@ -40,8 +40,8 @@ HELPER FUNCTIONS
     This function can be used to encrype your apikey into the accepted format.
 
     INPUTS
-    * ampache_api  = (string) apikey
-    * user = (string) username
+    * ampache_api = (string) apikey
+    * user        = (string) username
 """
 def encrypt_string(ampache_api, user):
     key = hashlib.sha256(ampache_api.encode()).hexdigest()
@@ -75,6 +75,8 @@ def ping(ampache_url, ampache_api):
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
         return False
+    except urllib.error.HTTPError:
+        return False
     ampache_response = result.read()
     result.close()
     try:
@@ -97,7 +99,7 @@ def ping(ampache_url, ampache_api):
     * ampache_url = (string)
     * ampache_api = (string)
     * timestamp   = (integer) UNIXTIME() //optional
-    * version     = (string) //optional)
+    * version     = (string) //optional
 """
 def handshake(ampache_url, ampache_api, timestamp=0, version='400001'):
     if timestamp == 0:
@@ -111,6 +113,8 @@ def handshake(ampache_url, ampache_api, timestamp=0, version='400001'):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     result.close()
@@ -142,6 +146,8 @@ def goodbye(ampache_url, ampache_api):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     result.close()
@@ -177,7 +183,7 @@ def goodbye(ampache_url, ampache_api):
     * MBartist    = (string) //optional
     * MBalbum     = (string) //optional
     * time        = (integer) UNIXTIME() //optional
-    * client      = (string) //optional)
+    * client      = (string) //optional
 """
 def scrobble(ampache_url, ampache_api, title, artist, album, MBtitle='', MBartist='', MBalbum='', time='', client = 'AmpacheAPI'):
     if not ampache_url or not ampache_api or not title or not artist or not album:
@@ -197,6 +203,8 @@ def scrobble(ampache_url, ampache_api, title, artist, album, MBtitle='', MBartis
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -225,8 +233,8 @@ def scrobble(ampache_url, ampache_api, title, artist, album, MBtitle='', MBartis
     * ampache_api = (string)
     * type        = (string) 'song'|'album'|'artist'|'playlist'
     * filter      = (string) //optional
-    * add
-    * update
+    * add         = //optional
+    * update      = //optional
     * offset      = (integer) //optional
     * limit       = (integer) //optional
 """
@@ -246,6 +254,8 @@ def get_indexes(ampache_url, ampache_api, type, filter = '', add = '', update = 
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -272,12 +282,12 @@ def get_indexes(ampache_url, ampache_api, type, filter = '', add = '', update = 
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * add
-    * update
-    * offset
-    * limit
-    * include
+    * filter      = //optional
+    * add         = //optional
+    * update      = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
+    * include     = //optional
 """
 def artists(ampache_url, ampache_api, filter = '', add = None, update = None, offset = 0, limit = 0, include = None):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -300,6 +310,8 @@ def artists(ampache_url, ampache_api, filter = '', add = None, update = None, of
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -326,8 +338,8 @@ def artists(ampache_url, ampache_api, filter = '', add = None, update = None, of
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * include
+    * filter      = 
+    * include     = //optional
 """
 def artist(ampache_url, ampache_api, filter, include = None):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -342,6 +354,8 @@ def artist(ampache_url, ampache_api, filter, include = None):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -368,9 +382,9 @@ def artist(ampache_url, ampache_api, filter, include = None):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      =
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def artist_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -383,6 +397,8 @@ def artist_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -409,9 +425,9 @@ def artist_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def artist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -424,6 +440,8 @@ def artist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -450,13 +468,13 @@ def artist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * exact
-    * add
-    * update
-    * filter
-    * offset
-    * limit
-    * include
+    * exact       = //optional
+    * add         = //optional
+    * update      = //optional
+    * filter      = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
+    * include     = //optional
 """
 def albums(ampache_url, ampache_api, exact = '', add = None, update = None, filter = '', offset = 0, limit = 0, include = None):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -480,6 +498,8 @@ def albums(ampache_url, ampache_api, exact = '', add = None, update = None, filt
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -506,8 +526,8 @@ def albums(ampache_url, ampache_api, exact = '', add = None, update = None, filt
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * include
+    * filter      = 
+    * include     = //optional
 """
 def album(ampache_url, ampache_api, filter, include = None):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -522,6 +542,8 @@ def album(ampache_url, ampache_api, filter, include = None):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -548,9 +570,9 @@ def album(ampache_url, ampache_api, filter, include = None):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter = (string)
-    * offset = (int) //optional
-    * limit  = (int) //optional
+    * filter      = (string)
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def album_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -563,6 +585,8 @@ def album_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -589,10 +613,10 @@ def album_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * exact
-    * offset
-    * limit
+    * filter      = //optional
+    * exact       = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def tags(ampache_url, ampache_api, filter = '', exact = '', offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -606,6 +630,8 @@ def tags(ampache_url, ampache_api, filter = '', exact = '', offset = 0, limit = 
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -632,7 +658,7 @@ def tags(ampache_url, ampache_api, filter = '', exact = '', offset = 0, limit = 
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
+    * filter      = 
 """
 def tag(ampache_url, ampache_api, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -643,6 +669,8 @@ def tag(ampache_url, ampache_api, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -669,9 +697,9 @@ def tag(ampache_url, ampache_api, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def tag_artists(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -684,6 +712,8 @@ def tag_artists(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -710,9 +740,9 @@ def tag_artists(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def tag_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -725,6 +755,8 @@ def tag_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -751,9 +783,9 @@ def tag_albums(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def tag_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -766,6 +798,8 @@ def tag_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -792,12 +826,12 @@ def tag_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * exact
-    * add
-    * update
-    * filter
-    * offset
-    * limit
+    * exact       = //optional
+    * add         = //optional
+    * update      = //optional
+    * filter      = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def songs(ampache_url, ampache_api, exact = '', add = '', update = '', filter = '', offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -813,6 +847,8 @@ def songs(ampache_url, ampache_api, exact = '', add = '', update = '', filter = 
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -839,7 +875,7 @@ def songs(ampache_url, ampache_api, exact = '', add = '', update = '', filter = 
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
+    * filter      = 
 """
 def song(ampache_url, ampache_api, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -850,6 +886,8 @@ def song(ampache_url, ampache_api, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -876,7 +914,7 @@ def song(ampache_url, ampache_api, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * url
+    * url         = 
 """
 def url_to_song(ampache_url, ampache_api, url):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -887,6 +925,8 @@ def url_to_song(ampache_url, ampache_api, url):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -913,10 +953,10 @@ def url_to_song(ampache_url, ampache_api, url):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * exact
-    * filter
-    * offset
-    * limit
+    * exact       = //optional
+    * filter      = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def playlists(ampache_url, ampache_api, exact = '', filter = '', offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -930,6 +970,8 @@ def playlists(ampache_url, ampache_api, exact = '', filter = '', offset = 0, lim
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -956,7 +998,7 @@ def playlists(ampache_url, ampache_api, exact = '', filter = '', offset = 0, lim
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
+    * filter      = 
 """
 def playlist(ampache_url, ampache_api, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -967,6 +1009,8 @@ def playlist(ampache_url, ampache_api, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -993,9 +1037,9 @@ def playlist(ampache_url, ampache_api, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def playlist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1008,6 +1052,8 @@ def playlist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1034,8 +1080,8 @@ def playlist_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * name
-    * type
+    * name        = 
+    * type        = 
 """
 def playlist_create(ampache_url, ampache_api, name, type):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1047,6 +1093,8 @@ def playlist_create(ampache_url, ampache_api, name, type):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1073,9 +1121,9 @@ def playlist_create(ampache_url, ampache_api, name, type):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * name
-    * type
-    * filter
+    * name        = 
+    * type        = 
+    * filter      = 
 """
 def playlist_edit(ampache_url, ampache_api, name, type, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1088,6 +1136,8 @@ def playlist_edit(ampache_url, ampache_api, name, type, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1114,7 +1164,7 @@ def playlist_edit(ampache_url, ampache_api, name, type, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
+    * filter      = (integer) $playlist_id
 """
 def playlist_delete(ampache_url, ampache_api, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1125,6 +1175,8 @@ def playlist_delete(ampache_url, ampache_api, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1151,8 +1203,8 @@ def playlist_delete(ampache_url, ampache_api, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * song
-    * filter
+    * song        = (integer) $song_id
+    * filter      = (integer) $playlist_id
 """
 def playlist_add_song(ampache_url, ampache_api, song, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1164,6 +1216,8 @@ def playlist_add_song(ampache_url, ampache_api, song, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1191,19 +1245,30 @@ def playlist_add_song(ampache_url, ampache_api, song, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * song
-    * filter
+    * filter      = (integer) $playlist_id
+    * song        = (integer) $song_id //optional
+    * track       = (integer) $playlist_track number //optional
 """
-def playlist_remove_song(ampache_url, ampache_api, song, filter):
+def playlist_remove_song(ampache_url, ampache_api, filter, song = False, track = False):
     ampache_url = ampache_url + '/server/xml.server.php'
-    data = urllib.parse.urlencode({'action': 'playlist_remove_song',
-                                   'auth': ampache_api,
-                                   'song': song,
-                                   'filter': filter})
+
+    data = {'action': 'playlist_remove_song',
+            'auth': ampache_api,
+            'mode': mode,
+            'filter': filter,
+            'song': song,
+            'track': track}
+    if not song:
+        data.pop('song')
+    if not track:
+        data.pop('track')
+    data = urllib.parse.urlencode(data)
     full_url = ampache_url + '?' + data
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1222,6 +1287,72 @@ def playlist_remove_song(ampache_url, ampache_api, song, filter):
         token = False
     return token
 
+""" playlist_generate
+    MINIMUM_API_VERSION=400001
+    CHANGED_IN_API_VERSION=400002
+
+    Get a list of song XML, indexes or id's based on some simple search criteria =
+    'recent' will search for tracks played after 'Popular Threshold' days
+    'forgotten' will search for tracks played before 'Popular Threshold' days
+    'unplayed' added in 400002 for searching unplayed tracks
+
+    INPUTS
+    * ampache_url = (string)
+    * ampache_api = (string)
+    * mode        = (string) 'recent', 'forgotten', 'unplayed', 'random' (default = 'random') //optional
+    * filter      = (string) string LIKE matched to song title //optional
+    * album       = (integer) $album_id //optional
+    * artist      = (integer) $artist_id //optional
+    * flag        = (integer) get flagged songs only 0, 1 (default = 0) //optional
+    * format      = (string) 'song', 'index','id' (default = 'song') //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
+"""
+def playlist_generate(ampache_url, ampache_api, mode = 'random', filter = False, album = False, artist = False, flag = False, format = 'song', offset = 0, limit = 0):
+    ampache_url = ampache_url + '/server/xml.server.php'
+    data = {'action': 'playlist_generate',
+            'auth': ampache_api,
+            'mode': mode,
+            'filter': filter,
+            'album': album,
+            'artist': artist,
+            'flag': flag,
+            'format': format,
+            'offset': offset,
+            'limit': limit}
+    if not filter:
+        data.pop('filter')
+    if not album:
+        data.pop('album')
+    if not artist:
+        data.pop('artist')
+    if not flag:
+        data.pop('flag')
+    data = urllib.parse.urlencode(data)
+    full_url = ampache_url + '?' + data
+    try:
+        result = urllib.request.urlopen(full_url)
+    except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
+        return False
+    ampache_response = result.read().decode('utf-8')
+    try:
+        tree = ET.fromstring(ampache_response)
+    except ET.ParseError:
+        return False
+    try:
+        token = tree.tag
+    except AttributeError:
+        token = False
+    if token:
+        return tree
+    try:
+        token = tree.find('error').text
+    except AttributeError:
+        token = False
+    return token
+
 """ search_songs
     MINIMUM_API_VERSION=380001
 
@@ -1230,9 +1361,9 @@ def playlist_remove_song(ampache_url, ampache_api, song, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
-    * offset
-    * limit
+    * filter      = 
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def search_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1245,6 +1376,8 @@ def search_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1269,7 +1402,7 @@ def search_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     Perform an advanced search given passed rules
     the rules can occur multiple times and are joined by the operator item.
     
-    Refer to the wiki for firther information
+    Refer to the wiki for further information
     https://github.com/ampache/ampache/wiki/XML-methods
 
     rule_1
@@ -1315,11 +1448,12 @@ def search_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     rule_1_operator
       * 0 contains / is greater than or equal to / before / is true / is / before (x) days ago
       * 1 does not contain / is less than or equal to / after / is false / is not / after (x) days ago
-      * 2 starts with / is 					
-      * 3 ends with / is not 					
-      * 4 is / is greater than 					
-      * 5 sounds like / is less than 					
-      * 6 does not sound like
+      * 2 starts with / is 
+      * 3 ends with / is not 
+      * 4 is / is greater than 
+      * 5 is not / is less than 
+      * 6 sounds like
+      * 7 does not sound like
 
     rule_1_input
       * text
@@ -1329,11 +1463,11 @@ def search_songs(ampache_url, ampache_api, filter, offset = 0, limit = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * rules = (array) = [[rule_1,rule_1_operator,rule_1_input], [rule_2,rule_2_operator,rule_2_input], [etc]]
-    * operator = (string) 'and'|'or' (whether to match one rule or all)
-    * type = (string)
-    * offset = (integer)
-    * limit' = (integer)
+    * rules       = (array) = [[rule_1,rule_1_operator,rule_1_input], [rule_2,rule_2_operator,rule_2_input], [etc]]
+    * operator    = (string) 'and'|'or' (whether to match one rule or all) //optional
+    * type        = (string)  //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 """
 def advanced_search(ampache_url, ampache_api, rules, operator = 'and', type = 'song', offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1356,6 +1490,8 @@ def advanced_search(ampache_url, ampache_api, rules, operator = 'and', type = 's
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1382,10 +1518,10 @@ def advanced_search(ampache_url, ampache_api, rules, operator = 'and', type = 's
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * exact
-    * filter
-    * offset
-    * limit
+    * exact       = //optional
+    * filter      = //optional
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
 
 """
 def videos(ampache_url, ampache_api, exact = '', filter = '', offset = 0, limit = 0):
@@ -1400,6 +1536,8 @@ def videos(ampache_url, ampache_api, exact = '', filter = '', offset = 0, limit 
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1426,7 +1564,7 @@ def videos(ampache_url, ampache_api, exact = '', filter = '', offset = 0, limit 
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * filter
+    * filter      = 
 """
 def video(ampache_url, ampache_api, filter):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1437,6 +1575,8 @@ def video(ampache_url, ampache_api, filter):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1463,7 +1603,7 @@ def video(ampache_url, ampache_api, filter):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * command
+    * command     = 
 """
 def localplay(ampache_url, ampache_api, command):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1474,6 +1614,8 @@ def localplay(ampache_url, ampache_api, command):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1500,9 +1642,9 @@ def localplay(ampache_url, ampache_api, command):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * method
-    * action
-    * oid
+    * method      = 
+    * action      = 
+    * oid         = 
 """
 def democratic(ampache_url, ampache_api, method, action, oid):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1515,6 +1657,8 @@ def democratic(ampache_url, ampache_api, method, action, oid):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1542,12 +1686,12 @@ def democratic(ampache_url, ampache_api, method, action, oid):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * type = (string) 'song'|'album'|'artist'
-    * filter = (string) 'newest'|'highest'|'frequent'|'recent'|'flagged'|null
-    * offset = (integer) //optional
-    * limit = (integer) //optional
-    * user_id = (integer) //optional
-    * username = (string) //optional
+    * type        = (string) 'song'|'album'|'artist'
+    * filter      = (string) 'newest'|'highest'|'frequent'|'recent'|'flagged'|null
+    * offset      = (integer) //optional
+    * limit       = (integer) //optional
+    * user_id     = (integer) //optional
+    * username    = (string) //optional
 """
 def stats(ampache_url, ampache_api, type, filter, username = None, user_id = None, offset = 0, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1568,6 +1712,8 @@ def stats(ampache_url, ampache_api, type, filter, username = None, user_id = Non
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1594,7 +1740,7 @@ def stats(ampache_url, ampache_api, type, filter, username = None, user_id = Non
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username
+    * username    = 
 """
 def user(ampache_url, ampache_api, username):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1605,6 +1751,8 @@ def user(ampache_url, ampache_api, username):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1631,7 +1779,7 @@ def user(ampache_url, ampache_api, username):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username
+    * username    = 
 """
 def followers(ampache_url, ampache_api, username):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1642,6 +1790,8 @@ def followers(ampache_url, ampache_api, username):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1668,7 +1818,7 @@ def followers(ampache_url, ampache_api, username):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username
+    * username    = 
 """
 def following(ampache_url, ampache_api, username):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1679,6 +1829,8 @@ def following(ampache_url, ampache_api, username):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1705,7 +1857,7 @@ def following(ampache_url, ampache_api, username):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username
+    * username    = 
 """
 def toggle_follow(ampache_url, ampache_api, username):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1716,6 +1868,8 @@ def toggle_follow(ampache_url, ampache_api, username):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1742,8 +1896,8 @@ def toggle_follow(ampache_url, ampache_api, username):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username
-    * limit    = (int) //optional
+    * username    = 
+    * limit       = (integer) //optional
 """
 def last_shouts(ampache_url, ampache_api, username, limit = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1755,6 +1909,8 @@ def last_shouts(ampache_url, ampache_api, username, limit = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1798,6 +1954,8 @@ def rate(ampache_url, ampache_api, type, id, rating):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1849,6 +2007,8 @@ def flag(ampache_url, ampache_api, type, id, flag):
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
         return False
+    except urllib.error.HTTPError:
+        return False
     ampache_response = result.read().decode('utf-8')
     try:
         tree = ET.fromstring(ampache_response)
@@ -1874,9 +2034,9 @@ def flag(ampache_url, ampache_api, type, id, flag):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * id     = (integer) $object_id
-    * user   = (integer) $user_id
-    * client = (string) $agent //optional
+    * id          = (integer) $object_id
+    * user        = (integer) $user_id
+    * client      = (string) $agent //optional
 """
 def record_play(ampache_url, ampache_api, id, user, client = 'AmpacheAPI'):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1889,6 +2049,8 @@ def record_play(ampache_url, ampache_api, id, user, client = 'AmpacheAPI'):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1915,9 +2077,9 @@ def record_play(ampache_url, ampache_api, id, user, client = 'AmpacheAPI'):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * username = (string)
-    * limit = (integer) //optional
-    * since = (integer) UNIXTIME() //optional
+    * username    = (string)
+    * limit       = (integer) //optional
+    * since       = (integer) UNIXTIME() //optional
 """
 def timeline(ampache_url, ampache_api, username, limit = 0, since = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1930,6 +2092,8 @@ def timeline(ampache_url, ampache_api, username, limit = 0, since = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1956,8 +2120,8 @@ def timeline(ampache_url, ampache_api, username, limit = 0, since = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * limit = (integer)
-    * since = (integer) UNIXTIME()
+    * limit       = (integer) //optional
+    * since       = (integer) UNIXTIME() //optional
 """
 def friends_timeline(ampache_url, ampache_api, limit = 0, since = 0):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -1969,6 +2133,8 @@ def friends_timeline(ampache_url, ampache_api, limit = 0, since = 0):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -1995,8 +2161,8 @@ def friends_timeline(ampache_url, ampache_api, limit = 0, since = 0):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * task = (string) 'add_to_catalog'|'clean_catalog'
-    * catalog = (integer) $catalog_id
+    * task        = (string) 'add_to_catalog'|'clean_catalog'
+    * catalog     = (integer) $catalog_id
 """
 def catalog_action(ampache_url, ampache_api, task, catalog):
     if not (task == 'add_to_catalog' or task == 'clean_catalog') or not catalog > 0:
@@ -2010,6 +2176,8 @@ def catalog_action(ampache_url, ampache_api, task, catalog):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -2036,8 +2204,8 @@ def catalog_action(ampache_url, ampache_api, task, catalog):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * type = (string) 'artist'|'album'|'song'
-    * id = (integer) $artist_id, $album_id, $song_id)
+    * type        = (string) 'artist'|'album'|'song'
+    * id          = (integer) $artist_id, $album_id, $song_id
 """
 def update_from_tags(ampache_url, ampache_api, ampache_type, ampache_id):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -2049,6 +2217,8 @@ def update_from_tags(ampache_url, ampache_api, ampache_type, ampache_id):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -2076,9 +2246,9 @@ def update_from_tags(ampache_url, ampache_api, ampache_type, ampache_id):
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * type = (string) 'artist'|'album'|'song'
-    * id = (integer) $artist_id, $album_id, $song_id
-    * overwrite = (boolean) 0|1 //optional)
+    * type        = (string) 'artist'|'album'|'song'
+    * id          = (integer) $artist_id, $album_id, $song_id
+    * overwrite   = (boolean) 0|1 //optional
 """
 def update_art(ampache_url, ampache_api, ampache_type, ampache_id, overwrite = False):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -2094,6 +2264,8 @@ def update_art(ampache_url, ampache_api, ampache_type, ampache_id, overwrite = F
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -2121,7 +2293,7 @@ def update_art(ampache_url, ampache_api, ampache_type, ampache_id, overwrite = F
     INPUTS
     * ampache_url = (string)
     * ampache_api = (string)
-    * id = (integer) $artist_id)
+    * id          = (integer) $artist_id
 """
 def update_artist_info(ampache_url, ampache_api, id):
     ampache_url = ampache_url + '/server/xml.server.php'
@@ -2132,6 +2304,8 @@ def update_artist_info(ampache_url, ampache_api, id):
     try:
         result = urllib.request.urlopen(full_url)
     except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
         return False
     ampache_response = result.read().decode('utf-8')
     try:
@@ -2160,7 +2334,7 @@ def update_artist_info(ampache_url, ampache_api, id):
     * ampache_api = (string)
     * id          = (string) $song_id / $podcast_episode_id
     * type        = (string) 'song'|'podcast'
-    * destination = (string) full file path)
+    * destination = (string) full file path
 """
 def stream(ampache_url, ampache_api, id, type, destination):
     if not os.path.isdir(os.path.dirname(destination)):
@@ -2186,7 +2360,7 @@ def stream(ampache_url, ampache_api, id, type, destination):
     * id          = (string) $song_id / $podcast_episode_id
     * type        = (string) 'song'|'podcast'
     * destination = (string) full file path
-    * format      = (string) 'mp3', 'ogg', etc. ('raw' / original by default))
+    * format      = (string) 'mp3', 'ogg', etc. ('raw' / original by default)
 """
 def download(ampache_url, ampache_api, id, type, destination, format = 'raw'):
     if not os.path.isdir(os.path.dirname(destination)):
@@ -2201,3 +2375,193 @@ def download(ampache_url, ampache_api, id, type, destination, format = 'raw'):
     result = requests.get(full_url, allow_redirects=True)
     open(destination, 'wb').write(result.content)
     return True
+
+""" get_art
+    MINIMUM_API_VERSION=400001
+
+    get the binary art for an item
+
+    INPUTS
+    * ampache_url = (string)
+    * ampache_api = (string)
+    * id          = (string) $song_id / $podcast_episode_id
+    * type        = (string) 'song', 'artist', 'album', 'playlist', 'search', 'podcast'
+"""
+def get_art(ampache_url, ampache_api, id, type):
+    if not os.path.isdir(os.path.dirname(destination)):
+        return False
+    ampache_url = ampache_url + '/server/xml.server.php'
+    data = urllib.parse.urlencode({'action': 'get_art',
+                                   'auth': ampache_api,
+                                   'id': id,
+                                   'type': type})
+    full_url = ampache_url + '?' + data
+    result = requests.get(full_url, allow_redirects=True)
+    open(destination, 'wb').write(result.content)
+    return True
+
+""" user_create
+    MINIMUM_API_VERSION=400001
+
+    Create a new user. (Requires the username, password and email.) @param array $input
+
+    INPUTS
+    * ampache_url = (string)
+    * ampache_api = (string)
+    * username    = (string) $username
+    * password    = (string) hash('sha256', $password))
+    * email       = (string) 'user@gmail.com'
+    * fullname    = (string) //optional
+    * disable     = (boolean) 0|1 //optional
+"""
+def user_create(ampache_url, ampache_api, username, password, email, fullname = False, disable = False):
+    ampache_url = ampache_url + '/server/xml.server.php'
+    data = {'action': 'user_create',
+            'auth': ampache_api,
+            'username': username,
+            'password': password,
+            'email': email,
+            'fullname': fullname,
+            'disable': disable}
+    if not fullname:
+        data.pop('fullname')
+    if not disable:
+        data.pop('disable')
+    if not maxbitrate:
+        data.pop('maxbitrate')
+    data = urllib.parse.urlencode(data)
+    full_url = ampache_url + '?' + data
+    try:
+        result = urllib.request.urlopen(full_url)
+    except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
+        return False
+    ampache_response = result.read().decode('utf-8')
+    try:
+        tree = ET.fromstring(ampache_response)
+    except ET.ParseError:
+        return False
+    try:
+        token = tree.tag
+    except AttributeError:
+        token = False
+    if token:
+        return tree
+    try:
+        token = tree.find('error').text
+    except AttributeError:
+        token = False
+    return token
+
+""" user_update
+    MINIMUM_API_VERSION=400001
+
+    Update an existing user. @param array $input
+
+    INPUTS
+    * ampache_url = (string)
+    * ampache_api = (string)
+    * username    = (string) $username
+    * password    = (string) hash('sha256', $password)) //optional
+    * fullname    = (string) //optional
+    * email       = (string) 'user@gmail.com' //optional
+    * website     = (string) //optional
+    * state       = (string) //optional
+    * city        = (string) //optional
+    * disable     = (boolean) 0|1 //optional
+    * maxbitrate  = (string) //optional
+"""
+def user_update(ampache_url, ampache_api, username, password = False, fullname = False, email = False, website = False, state = False, city = False, disable = False, maxbitrate = False):
+    ampache_url = ampache_url + '/server/xml.server.php'
+    data = {'action': 'stats',
+            'auth': ampache_api,
+            'username': username,
+            'password': password,
+            'fullname': fullname,
+            'email': email,
+            'website': website,
+            'state': state,
+            'city': city,
+            'disable': disable,
+            'maxbitrate': maxbitrate}
+    if not password:
+        data.pop('password')
+    if not fullname:
+        data.pop('fullname')
+    if not email:
+        data.pop('email')
+    if not website:
+        data.pop('website')
+    if not state:
+        data.pop('state')
+    if not city:
+        data.pop('city')
+    if not disable:
+        data.pop('disable')
+    if not maxbitrate:
+        data.pop('maxbitrate')
+    data = urllib.parse.urlencode(data)
+    full_url = ampache_url + '?' + data
+    try:
+        result = urllib.request.urlopen(full_url)
+    except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
+        return False
+    ampache_response = result.read().decode('utf-8')
+    try:
+        tree = ET.fromstring(ampache_response)
+    except ET.ParseError:
+        return False
+    try:
+        token = tree.tag
+    except AttributeError:
+        token = False
+    if token:
+        return tree
+    try:
+        token = tree.find('error').text
+    except AttributeError:
+        token = False
+    return token
+
+""" user_delete
+    MINIMUM_API_VERSION=400001
+
+    Delete an existing user. @param array $input
+
+    INPUTS
+    * ampache_url = (string)
+    * ampache_api = (string)
+    * username    = (string) $username
+"""
+def user_delete(ampache_url, ampache_api, username):
+    ampache_url = ampache_url + '/server/xml.server.php'
+    data = {'action': 'stats',
+            'auth': ampache_api,
+            'username': username}
+    data = urllib.parse.urlencode(data)
+    full_url = ampache_url + '?' + data
+    try:
+        result = urllib.request.urlopen(full_url)
+    except urllib.error.URLError:
+        return False
+    except urllib.error.HTTPError:
+        return False
+    ampache_response = result.read().decode('utf-8')
+    try:
+        tree = ET.fromstring(ampache_response)
+    except ET.ParseError:
+        return False
+    try:
+        token = tree.tag
+    except AttributeError:
+        token = False
+    if token:
+        return tree
+    try:
+        token = tree.find('error').text
+    except AttributeError:
+        token = False
+    return token
