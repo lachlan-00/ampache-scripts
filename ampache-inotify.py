@@ -57,6 +57,14 @@ destinfiles = []
 
 print('\n-------------------------\nampache-inotify.py\n-------------------------')
 
+
+class Identity(pyinotify.ProcessEvent):
+    def process_default(self, event):
+        # Does nothing, just to demonstrate how stuffs could be done
+        # after having processed statistics.
+        print(self)
+        print(event)
+
 def foldersearch(input_string):
     """ process dirs or run tag check for files (if mp3) """
     if os.path.isdir(input_string):
@@ -148,16 +156,22 @@ else:
 encrypted_key = ampache.encrypt_string(ampache_api, ampache_user)
 ampache_session = ampache.handshake(ampache_url, encrypted_key)
 
-          
+
 # process query and copy results to the destination
 if ampache_session and destination:
     print('Connection Established\n')
-    # Instanciate a new WatchManager (will be used to store watches).
     wm = pyinotify.WatchManager()
-    # Associate this WatchManager with a Notifier (will be used to report and
-    # process events).
-    notifier = pyinotify.Notifier(wm)
-    # Add a new watch on /tmp for ALL_EVENTS.
-    wm.add_watch(destination, pyinotify.ALL_EVENTS)
-    # Loop forever and handle events.
-    notifier.loop()
+    stat = pyinotify.Stats() # Stats is a subclass of ProcessEvent
+    notifier = pyinotify.ThreadedNotifier(wm, default_proc_fun=Identity(stat))
+    notifier.start()
+    wm.add_watch(destination, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
+
+    while True:
+        try:
+            time.sleep(5)
+        except KeyboardInterrupt:
+            notifier.stop()
+            break
+
+
+

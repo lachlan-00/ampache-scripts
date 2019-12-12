@@ -30,10 +30,19 @@ There are now five scripts in the project with separate uses:
 ## REQUIREMENTS
 
 python3-mysql.connector
+```
+pip3 install -U mysql-connector
+```
 
-## install using pip
+python3-ampache
+```
+pip3 install -U ampache
+```
 
-sudo pip3 install mysql-connector
+pyinotify
+```
+pip3 install -U pyinotify
+```
 
 ## NEWS
 
