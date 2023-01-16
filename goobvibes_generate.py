@@ -41,11 +41,27 @@ def create_stations_xml():
             conf = configparser.RawConfigParser()
             conf.read('ampyche.conf')
             if not ampache_url:
-                ampache_url = conf.get('conf', 'ampache_url')
+                try:
+                    ampache_url = conf.get('conf', 'ampache_url')
+                except configparser.NoOptionError:
+                    pass
             if not ampache_api:
-                ampache_api = conf.get('conf', 'ampache_apikey')
+                try:
+                    ampache_api = conf.get('conf', 'ampache_apikey')
+                except configparser.NoOptionError:
+                    pass
             if not ampache_user:
-                ampache_user = conf.get('conf', 'ampache_user')
+                try:
+                    ampache_user = conf.get('conf', 'ampache_user')
+                except configparser.NoOptionError:
+                    pass
+
+    if ampache_url is None:
+        ampache_url = input("Enter Ampache URL: ")
+    if ampache_api is None:
+        ampache_api = input("Enter Ampache API KEY: ")
+    if ampache_user is None:
+        ampache_user = input("Enter Ampache USERNAME: ")
 
     # xml or json supported formats
     api_format = 'json'
