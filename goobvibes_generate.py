@@ -7,6 +7,7 @@ import sys
 
 from xml.dom import minidom
 
+
 def create_stations_xml():
     # installed from deb/rpm/etc
     directory = os.path.expanduser("~/.local/share/goodvibes")
@@ -23,7 +24,7 @@ def create_stations_xml():
     root = minidom.Document()
     stations = root.createElement("Stations")
     root.appendChild(stations)
-    
+
     # Connect ot Ampache
     # user variables
     ampache_url = None
@@ -75,9 +76,9 @@ def create_stations_xml():
     ampacheConnection.set_debug(False)
     ampacheConnection.set_format(api_format)
     encrypted_key = ampacheConnection.encrypt_string(ampache_api, ampache_user)
-    ampache_session = ampacheConnection.handshake(ampache_url, encrypted_key, False, False, api_version)
+    ampache_session = ampacheConnection.handshake(ampache_url, encrypted_key, '', 0, api_version)
 
-    if not ampache_api:
+    if not ampache_session:
         print()
         sys.exit('ERROR: Failed to connect to ' + ampache_url)
 
@@ -95,12 +96,12 @@ def create_stations_xml():
         if "smart_" in playlist["id"]:
             listtype = "search"
         uri = root.createElement("uri")
-        uri.appendChild(root.createTextNode(ampache_url + "/play/ssid/" + authtoken + "/uid/" + user["id"] + "/random/1/random_type/" + listtype + "/random_id/" + playlist["id"].replace("smart_", "", 1)))
+        uri.appendChild(root.createTextNode(ampache_url + "/play/ssid/" + authtoken + "/uid/" + user[
+            "id"] + "/random/1/random_type/" + listtype + "/random_id/" + playlist["id"].replace("smart_", "", 1)))
         station.appendChild(uri)
         name = root.createElement("name")
         name.appendChild(root.createTextNode(playlist["name"]))
         station.appendChild(name)
-
 
     # Write the XML to file
     with open(os.path.join(directory, "stations.xml"), "w") as f:
@@ -112,6 +113,7 @@ def create_stations_xml():
     with open("stations.xml", "w") as f:
         root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
 
+
 # Driver Code
-if __name__ == "__main__": 
+if __name__ == "__main__":
     create_stations_xml()
