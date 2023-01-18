@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
 
 import ampache
-import configparser
 import os
 import sys
-
 from xml.dom import minidom
 
-
-def create_stations_xml():
-    # installed from deb/rpm/etc
-    directory = os.path.expanduser("~/.local/share/goodvibes")
-    if not os.path.exists(directory):
-        print("makedir: ", os.path.expanduser("~/.local/share/goodvibes"))
-        os.makedirs(directory)
-    # flatpak default folder
-    flatpakdirectory = os.path.expanduser("~/.var/app/io.gitlab.Goodvibes/data/goodvibes")
-    if not os.path.exists(flatpakdirectory):
-        print("makedir: ", os.path.expanduser("~/.var/app/io.gitlab.Goodvibes/data/goodvibes"))
-        os.makedirs(flatpakdirectory)
-
-    # Create the root element
-    root = minidom.Document()
-    stations = root.createElement("Stations")
-    root.appendChild(stations)
-
-    # Connect ot Ampache
+def ampache_loader(ampacheConnection: ampache.API):
+    # Connect to Ampache
     # user variables
     ampache_url = None
     ampache_api = None
     ampache_user = None
+
+    # load a saved config file
+    config_path = os.path.expanduser("~/.config/ampache")
+    if not os.path.exists(config_path):
+        print("makedir: ", config_path)
+        os.makedirs(config_path)
+    try:
+        ampacheConnection.set_config_path(config_path)
+        if ampacheConnection.get_config():
+            print("get_config:", os.path.join(ampacheConnection.CONFIG_PATH, ampacheConnection.CONFIG_FILE))
+            return
+    except AttributeError:
+        pass
+
+    # User CLI args to get the data if it's missing
     try:
         if sys.argv[1]:
             ampache_url = sys.argv[1]
@@ -38,49 +34,68 @@ def create_stations_xml():
         if sys.argv[3]:
             ampache_user = sys.argv[3]
     except IndexError:
-        if os.path.isfile('ampyche.conf'):
-            conf = configparser.RawConfigParser()
-            conf.read('ampyche.conf')
-            if not ampache_url:
-                try:
-                    ampache_url = conf.get('conf', 'ampache_url')
-                except configparser.NoOptionError:
-                    pass
-            if not ampache_api:
-                try:
-                    ampache_api = conf.get('conf', 'ampache_apikey')
-                except configparser.NoOptionError:
-                    pass
-            if not ampache_user:
-                try:
-                    ampache_user = conf.get('conf', 'ampache_user')
-                except configparser.NoOptionError:
-                    pass
+        pass
 
+    # finally just ask for them if missing
     if ampache_url is None:
-        ampache_url = input("Enter Ampache URL: ")
+        ampacheConnection.AMPACHE_URL = input("Enter Ampache URL: ")
     if ampache_api is None:
-        ampache_api = input("Enter Ampache API KEY: ")
+        ampacheConnection.AMPACHE_KEY = input("Enter Ampache API KEY: ")
     if ampache_user is None:
-        ampache_user = input("Enter Ampache USERNAME: ")
+        ampacheConnection.AMPACHE_USER = input("Enter Ampache USERNAME: ")
 
-    # xml or json supported formats
+def create_stations_xml():
+    # installed from deb/rpm/etc
+    directory = os.path.expanduser("~/.local/share/goodvibes")
+    if not os.path.exists(directory):
+        print("makedir: ", directory)
+        os.makedirs(directory)
+    # flatpak default folder
+    flatpakdirectory = os.path.expanduser("~/.var/app/io.gitlab.Goodvibes/data/goodvibes")
+    if not os.path.exists(flatpakdirectory):
+        print("makedir: ", flatpakdirectory)
+        os.makedirs(flatpakdirectory)
+
+    # Create the root element
+    root = minidom.Document()
+    stations = root.createElement("Stations")
+    root.appendChild(stations)
+
+    # xml or json are supported formats
     api_format = 'json'
     api_version = '6.0.0'
 
-    """
-    handshake duplicate_mbid_group
-    """
-    print('Connecting to:\n    ', ampache_url)
+    # create an Ampache connection
     ampacheConnection = ampache.API()
-    ampacheConnection.set_debug(False)
+    #ampacheConnection.set_debug(False)
+    ampache_loader(ampacheConnection)
+
+    # override config if it's set to xml
     ampacheConnection.set_format(api_format)
-    encrypted_key = ampacheConnection.encrypt_string(ampache_api, ampache_user)
-    ampache_session = ampacheConnection.handshake(ampache_url, encrypted_key, '', 0, api_version)
+
+    # set the values
+    ampache_url = ampacheConnection.AMPACHE_URL
+    ampache_api = ampacheConnection.AMPACHE_KEY
+    ampache_user = ampacheConnection.AMPACHE_USER
+    ampache_session = ampacheConnection.AMPACHE_SESSION
+
+    ping = None
+    if ampache_session:
+        ping = ampacheConnection.ping(ampache_url, ampache_session, api_version)
+    if not ping:
+        print('Connecting to:\n    ', ampache_url)
+        encrypted_key = ampacheConnection.encrypt_string(ampache_api, ampache_user)
+        ampache_session = ampacheConnection.handshake(ampache_url, encrypted_key, '', 0, api_version)
 
     if not ampache_session:
         print()
         sys.exit('ERROR: Failed to connect to ' + ampache_url)
+
+    try:
+        # Did it work? save config
+        ampacheConnection.save_config()
+    except AttributeError:
+        pass
 
     user = ampacheConnection.user(ampache_user)
     authtoken = user["auth"]
@@ -104,11 +119,11 @@ def create_stations_xml():
         station.appendChild(name)
 
     # Write the XML to file
-    with open(os.path.join(directory, "stations.xml"), "w") as f:
-        root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
+    #with open(os.path.join(directory, "stations.xml"), "w") as f:
+    #    root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
     # Write the XML to file
-    with open(os.path.join(flatpakdirectory, "stations.xml"), "w") as f:
-        root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
+    #with open(os.path.join(flatpakdirectory, "stations.xml"), "w") as f:
+    #    root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
     # Write the XML to file
     with open("stations.xml", "w") as f:
         root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
