@@ -5,6 +5,7 @@ import os
 import sys
 from xml.dom import minidom
 
+
 def ampache_loader(ampacheConnection: ampache.API):
     # Connect to Ampache
     # user variables
@@ -44,6 +45,7 @@ def ampache_loader(ampacheConnection: ampache.API):
     if ampache_user is None:
         ampacheConnection.AMPACHE_USER = input("Enter Ampache USERNAME: ")
 
+
 def create_stations_xml():
     # installed from deb/rpm/etc
     directory = os.path.expanduser("~/.local/share/goodvibes")
@@ -67,7 +69,7 @@ def create_stations_xml():
 
     # create an Ampache connection
     ampacheConnection = ampache.API()
-    #ampacheConnection.set_debug(False)
+    ampacheConnection.set_debug(False)
     ampache_loader(ampacheConnection)
 
     # override config if it's set to xml
@@ -108,22 +110,25 @@ def create_stations_xml():
         station = root.createElement("Station")
         stations.appendChild(station)
         listtype = "playlist"
-        if "smart_" in playlist["id"]:
+        listid = playlist["id"].replace("smart_", "", 1)
+        if listid != playlist["id"]:
             listtype = "search"
         uri = root.createElement("uri")
-        uri.appendChild(root.createTextNode(ampache_url + "/play/ssid/" + authtoken + "/uid/" + user[
-            "id"] + "/random/1/random_type/" + listtype + "/random_id/" + playlist["id"].replace("smart_", "", 1)))
+        # https://music.com.au/play/index.php?ssid=streamingtoken&uid=1&random=1&random_type=search&random_id=123
+        # https://music.com.au/play/ssid/streamingtoken/uid/1/random/1/random_type/search/random_id/123
+        uri.appendChild(root.createTextNode(ampache_url + "/play/index.php?ssid=" + authtoken + "&uid=" + user["id"] +
+                                            "&random=1&random_type=" + listtype + "&random_id=" + listid))
         station.appendChild(uri)
         name = root.createElement("name")
         name.appendChild(root.createTextNode(playlist["name"]))
         station.appendChild(name)
 
     # Write the XML to file
-    #with open(os.path.join(directory, "stations.xml"), "w") as f:
-    #    root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
+    with open(os.path.join(directory, "stations.xml"), "w") as f:
+        root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
     # Write the XML to file
-    #with open(os.path.join(flatpakdirectory, "stations.xml"), "w") as f:
-    #    root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
+    with open(os.path.join(flatpakdirectory, "stations.xml"), "w") as f:
+        root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
     # Write the XML to file
     with open("stations.xml", "w") as f:
         root.writexml(f, indent="  ", newl="\n", addindent="  ", encoding="utf-8")
