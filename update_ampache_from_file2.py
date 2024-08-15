@@ -169,7 +169,7 @@ if ampache_session:
             # print tsv header to allow live updates to output file
             if printallrows or printerrors:
                 print('date\ttrack\tartist\talbum\ttrackmbid\tartistmbid' +
-                      '\talbummbid\tampachetrack\tampacheartist\tampachealbum')
+                      '\talbummbid\tampachetrack')
             for row in openfile:
                 tmprow = []
                 tmpdate = None
@@ -238,7 +238,7 @@ if ampache_session:
                         search_rules = [['mbid', 4, trackmbid],['mbid_album', 4, albummbid],['mbid_artist', 4, artistmbid]]
 
                         # search by id data and return 1 object
-                        search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                        search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                         songs = ampacheConnection.get_id_list(search_songs, 'song')
                         for song_id in songs:
@@ -252,7 +252,7 @@ if ampache_session:
                             search_rules = [['title', 4, rowtrack],['album', 4, rowalbum],['album_artist', 4, rowartist]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -262,7 +262,7 @@ if ampache_session:
                                 search_rules = [['title', 4, rowtrack],['album', 4, rowalbum],['artist', 4, rowartist]]
 
                                 # search by id data and return 1 object
-                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                                 songs = ampacheConnection.get_id_list(search_songs, 'song')
                                 for song_id in songs:
@@ -272,7 +272,7 @@ if ampache_session:
                             search_rules = [['mbid', 4, trackmbid],['mbid_artist', 4, artistmbid]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -282,7 +282,7 @@ if ampache_session:
                             search_rules = [['title', 4, rowtrack],['album_artist', 4, rowartist]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -292,7 +292,7 @@ if ampache_session:
                                 search_rules = [['title', 4, rowtrack],['artist', 4, rowartist]]
 
                                 # search by id data and return 1 object
-                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                                 songs = ampacheConnection.get_id_list(search_songs, 'song')
                                 for song_id in songs:
@@ -301,7 +301,7 @@ if ampache_session:
                             search_rules = [['mbid', 4, trackmbid],['mbid_album', 4, albummbid]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -310,7 +310,7 @@ if ampache_session:
                             search_rules = [['title', 4, rowtrack],['album', 4, rowalbum]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -320,7 +320,7 @@ if ampache_session:
                             search_rules = [['title', 4, rowtrack],['album_artist', 4, rowartist]]
 
                             # search by id data and return 1 object
-                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                             songs = ampacheConnection.get_id_list(search_songs, 'song')
                             for song_id in songs:
@@ -330,7 +330,7 @@ if ampache_session:
                                 search_rules = [['title', 4, rowtrack],['artist', 4, rowartist]]
 
                                 # search by id data and return 1 object
-                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 0, 1)
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
 
                                 songs = ampacheConnection.get_id_list(search_songs, 'song')
                                 for song_id in songs:
@@ -376,6 +376,157 @@ if ampache_session:
                             print('PLAYED', tmpline)
                         else:
                             print('FAILED', tmpline)
+            # close connections
+            csvfile.close()
+    if os.path.isfile(lovedfile):
+            print('Processing file ' + lovedfile)
+            with open(lovedfile, 'r', encoding="utf8") as csvfile:
+                # lastscrape is sorted recent -> oldest so reverse that
+                # that way the database will have a lower ID for older tracks
+                openfile = reversed(list(csv.reader(csvfile, delimiter='\t', )))
+                # print tsv header to allow live updates to output file
+                if printallrows or printerrors:
+                    print('date\ttrack\tartist\ttrackmbid\tartistmbid' +
+                        '\tampachetrack')
+                for row in openfile:
+                    tmprow = []
+                    tmpdate = None
+                    tmpsong = None
+                    founddate = False
+                    foundartist = None
+                    foundalbum = None
+                    foundsong = None
+                    rowtrack = None
+                    rowartist = None
+                    trackmbid = None
+                    artistmbid = None
+                    albummbid = None
+                    try:
+                        test = row[0]
+                    except IndexError:
+                        test = None
+                    try:
+                        test2 = str(int(row[0]))
+                    except ValueError:
+                        test2 = None
+                        # print(row)
+                    except IndexError:
+                        test2 = None
+                        # print(row)
+                    if test and test2:
+                        # Normalise row data
+                        tmpdate = test2
+                        try:
+                            if not row[1] == '':
+                                rowtrack = row[1]
+                            if not row[2] == '':
+                                rowartist = row[2]
+                        except IndexError:
+                            # missing rows in the tsv
+                            pass
+                        try:
+                            if not row[3] == '':
+                                trackmbid = row[3]
+                        except IndexError:
+                            # missing all the rows in the tsv
+                            pass
+                        try:
+                            if not row[4] == '':
+                                artistmbid = row[4]
+                        except IndexError:
+                            # missing all the rows in the tsv
+                            pass
 
+                        # search ampache db for song, album and artist
+                        # Look for a musicbrainz ID before the text of the tags
+                        # This should hopefully be more reliable if your tags change a lot
+                        #
+                        # [0]=time [1]=track [2]=artist [3]=trackMBID [4]=artistMBID
+                        #
+                        if trackmbid and artistmbid:
+                            search_rules = [['mbid', 4, trackmbid],['mbid_artist', 4, artistmbid]]
+
+                            # search by id data and return 1 object
+                            search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
+
+                            songs = ampacheConnection.get_id_list(search_songs, 'song')
+                            for song_id in songs:
+                                tmpsong = song_id
+                        if not rowtrack or not rowartist:
+                            pass
+                        elif (not tmpsong) and (rowtrack or rowartist):
+                            # find missing data if the mbid didn't work
+                            if (not tmpsong) and (rowtrack and rowartist):
+                                #maybe song artist too?
+                                search_rules = [['title', 4, rowtrack],['artist', 4, rowartist]]
+
+                                # search by id data and return 1 object
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
+
+                                songs = ampacheConnection.get_id_list(search_songs, 'song')
+                                for song_id in songs:
+                                    tmpsong = song_id
+                            # try pairs
+                            if (not tmpsong) and (trackmbid and artistmbid):
+                                search_rules = [['mbid', 4, trackmbid],['mbid_artist', 4, artistmbid]]
+
+                                # search by id data and return 1 object
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
+
+                                songs = ampacheConnection.get_id_list(search_songs, 'song')
+                                for song_id in songs:
+                                    tmpsong = song_id
+                            if (not tmpsong) and (rowtrack and rowartist):
+                                #maybe song artist too?
+                                search_rules = [['title', 4, rowtrack],['artist', 4, rowartist]]
+
+                                # search by id data and return 1 object
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
+
+                                songs = ampacheConnection.get_id_list(search_songs, 'song')
+                                for song_id in songs:
+                                    tmpsong = song_id
+                            if (not tmpsong) and (rowtrack and rowartist):
+                                #maybe song artist too?
+                                search_rules = [['title', 4, rowtrack],['artist', 4, rowartist]]
+
+                                # search by id data and return 1 object
+                                search_songs = ampacheConnection.advanced_search(search_rules, 'and', 'song', 0, 1)
+
+                                songs = ampacheConnection.get_id_list(search_songs, 'song')
+                                for song_id in songs:
+                                    tmpsong = song_id
+
+                        success = False
+                        # if you found a song id we have a match
+                        if tmpdate and tmpsong:
+                            result = ampacheConnection.flag('song', tmpsong, True, tmpdate)
+                            if printallrows and result and result['success']:
+                                success = True
+
+                        if printallrows or ((not tmpdate or not tmpsong) and printerrors):
+                            tmp0 = row[0]
+                            tmp1 = row[1]
+                            tmp2 = row[2]
+                            tmp3 = ''
+                            tmp4 = ''
+                            try:
+                                if not row[3] == '':
+                                    tmp4 = row[3]
+                            except IndexError:
+                                # missing all the rows in the tsv
+                                pass
+                            try:
+                                if not row[4] == '':
+                                    tmp5 = row[4]
+                            except IndexError:
+                                # missing all the rows in the tsv
+                                pass
+                            tmpline = ('{0}\t{1}\t{2}\t{3}\t{4}'.format(str(tmp0), str(tmp1),
+                                                                        str(tmp2), str(tmp3), str(tmp4)))
+                            if success:
+                                print('LOVED', tmpline)
+                            else:
+                                print('FAILED', tmpline)
             # close connections
             csvfile.close()
