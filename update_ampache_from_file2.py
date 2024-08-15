@@ -375,7 +375,10 @@ if ampache_session:
                         if success:
                             print('PLAYED', tmpline)
                         else:
-                            print('FAILED', tmpline)
+                            if not tmpdate or not tmpsong:
+                                print('MISSING', tmpline)
+                            else:
+                                print('FAILED', tmpline)
             # close connections
             csvfile.close()
     if os.path.isfile(lovedfile):
@@ -434,7 +437,6 @@ if ampache_session:
                         except IndexError:
                             # missing all the rows in the tsv
                             pass
-
                         # search ampache db for song, album and artist
                         # Look for a musicbrainz ID before the text of the tags
                         # This should hopefully be more reliable if your tags change a lot
@@ -495,35 +497,38 @@ if ampache_session:
                                 for song_id in songs:
                                     tmpsong = song_id
 
-                        success = False
-                        # if you found a song id we have a match
-                        if tmpdate and tmpsong:
-                            result = ampacheConnection.flag('song', tmpsong, True, tmpdate)
-                            if printallrows and result and result['success']:
-                                success = True
+                    success = False
+                    # if you found a song id we have a match
+                    if tmpdate and tmpsong:
+                        result = ampacheConnection.flag('song', tmpsong, True, tmpdate)
+                        if printallrows and result and result['success']:
+                            success = True
 
-                        if printallrows or ((not tmpdate or not tmpsong) and printerrors):
-                            tmp0 = row[0]
-                            tmp1 = row[1]
-                            tmp2 = row[2]
-                            tmp3 = ''
-                            tmp4 = ''
-                            try:
-                                if not row[4] == '':
-                                    tmp4 = row[4]
-                            except IndexError:
-                                # missing all the rows in the tsv
-                                pass
-                            try:
-                                if not row[5] == '':
-                                    tmp5 = row[5]
-                            except IndexError:
-                                # missing all the rows in the tsv
-                                pass
-                            tmpline = ('{0}\t{1}\t{2}\t{3}\t{4}'.format(str(tmp0), str(tmp1),
-                                                                        str(tmp2), str(tmp3), str(tmp4)))
-                            if success:
-                                print('LOVED', tmpline)
+                    if printallrows or ((not tmpdate or not tmpsong) and printerrors):
+                        tmp0 = row[0]
+                        tmp1 = row[1]
+                        tmp2 = row[2]
+                        tmp3 = ''
+                        tmp4 = ''
+                        try:
+                            if not row[4] == '':
+                                tmp4 = row[4]
+                        except IndexError:
+                            # missing all the rows in the tsv
+                            pass
+                        try:
+                            if not row[5] == '':
+                                tmp5 = row[5]
+                        except IndexError:
+                            # missing all the rows in the tsv
+                            pass
+                        tmpline = ('{0}\t{1}\t{2}\t{3}\t{4}'.format(str(tmp0), str(tmp1),
+                                                                    str(tmp2), str(tmp3), str(tmp4)))
+                        if success:
+                            print('LOVED', tmpline)
+                        else:
+                            if not tmpdate or not tmpsong:
+                                print('MISSING', tmpline)
                             else:
                                 print('FAILED', tmpline)
             # close connections
