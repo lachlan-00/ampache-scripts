@@ -22,7 +22,6 @@ process = None
 csvfile = None
 printallrows = False
 printerrors = False
-printchanges = False
 settings = 'ampache.csv'
 dumpfile = 'dump.txt'
 lovedfile = 'loved.txt'
@@ -50,10 +49,10 @@ for arguments in sys.argv:
         process = 'loved'
     if arguments[:4] == '/all':
         printallrows = True
+        printerrors = True
     if arguments[:7] == '/silent':
         printallrows = False
-    if arguments[:8] == '/changes':
-        printchanges = True
+        printerrors = False
     if arguments[:7] == '/errors' or arguments[:6] == '/error':
         printerrors = True
     if arguments[:3] == '/c:':
