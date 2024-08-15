@@ -169,7 +169,7 @@ if ampache_session:
             # print tsv header to allow live updates to output file
             if printallrows or printerrors:
                 print('date\ttrack\tartist\talbum\ttrackmbid\tartistmbid' +
-                      '\talbummbid\tampachetrack')
+                      '\talbummbid')
             for row in openfile:
                 tmprow = []
                 tmpdate = None
@@ -381,13 +381,11 @@ if ampache_session:
     if os.path.isfile(lovedfile):
             print('Processing file ' + lovedfile)
             with open(lovedfile, 'r', encoding="utf8") as csvfile:
-                # lastscrape is sorted recent -> oldest so reverse that
-                # that way the database will have a lower ID for older tracks
-                openfile = reversed(list(csv.reader(csvfile, delimiter='\t', )))
+                # there is no ide in user_flag so we don't need to sort it
+                openfile = list(csv.reader(csvfile, delimiter='\t', ))
                 # print tsv header to allow live updates to output file
                 if printallrows or printerrors:
-                    print('date\ttrack\tartist\ttrackmbid\tartistmbid' +
-                        '\tampachetrack')
+                    print('date\ttrack\tartist\t[BLANK]\ttrackmbid\tartistmbid')
                 for row in openfile:
                     tmprow = []
                     tmpdate = None
@@ -425,14 +423,14 @@ if ampache_session:
                             # missing rows in the tsv
                             pass
                         try:
-                            if not row[3] == '':
-                                trackmbid = row[3]
+                            if not row[4] == '':
+                                trackmbid = row[4]
                         except IndexError:
                             # missing all the rows in the tsv
                             pass
                         try:
-                            if not row[4] == '':
-                                artistmbid = row[4]
+                            if not row[5] == '':
+                                artistmbid = row[5]
                         except IndexError:
                             # missing all the rows in the tsv
                             pass
@@ -511,14 +509,14 @@ if ampache_session:
                             tmp3 = ''
                             tmp4 = ''
                             try:
-                                if not row[3] == '':
-                                    tmp4 = row[3]
+                                if not row[4] == '':
+                                    tmp4 = row[4]
                             except IndexError:
                                 # missing all the rows in the tsv
                                 pass
                             try:
-                                if not row[4] == '':
-                                    tmp5 = row[4]
+                                if not row[5] == '':
+                                    tmp5 = row[5]
                             except IndexError:
                                 # missing all the rows in the tsv
                                 pass
