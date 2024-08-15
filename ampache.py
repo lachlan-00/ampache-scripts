@@ -2,10 +2,10 @@
 
 
 """
-Copyright (C)2020 Ampache.org
--------------------------------------------
-Ampache XML and JSON Api 420000 for python3
--------------------------------------------
+Copyright (C)2023 Ampache.org
+--------------------------------------------
+Ampache XML and JSON Api library for python3
+--------------------------------------------
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import json
 import os
 import requests
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -36,10 +37,11 @@ class API(object):
 
     def __init__(self):
         self.AMPACHE_API = 'xml'
+        self.AMPACHE_SERVER = ''
         self.AMPACHE_DEBUG = False
-        self.DOCS_PATH = "docs/"
-        self.CONFIG_FILE = "ampache.json"
-        self.CONFIG_PATH = ""
+        self.DOCS_PATH = 'docs/'
+        self.CONFIG_FILE = 'ampache.json'
+        self.CONFIG_PATH = ''
         self.AMPACHE_URL = ''
         self.AMPACHE_SESSION = ''
         self.AMPACHE_USER = ''
@@ -137,9 +139,9 @@ class API(object):
         self.CONFIG_PATH = path
 
     def get_config(self):
-        """ save_config
+        """ get_config
 
-            read the config and set values from the json config file
+            Read the config and set values from the json config file
         """
         output_file = os.path.join(self.CONFIG_PATH, self.CONFIG_FILE)
         if os.path.isfile(output_file):
@@ -162,10 +164,7 @@ class API(object):
     def save_config(self):
         """ save_config
 
-            save config to a json file for use later
-
-            INPUTS
-            * myurl = (string) ''
+            Save config to a json file for use later
         """
         config = {
             "ampache_url": self.AMPACHE_URL,
@@ -243,17 +242,50 @@ class API(object):
                 id_list.append(data['id'])
         else:
             try:
-                for data_object in data[attribute]:
-                    id_list.append(data_object['id'])
-            except TypeError:
-                for data_object in data:
-                    id_list.append(data_object[0])
-            except KeyError:
-                id_list.append(data['id'])
+                if data[attribute]:
+                    try:
+                        if data[attribute]['id']:
+                            id_list.append(data[attribute]['id'])
+                    except (KeyError, TypeError):
+                        for data_object in data[attribute]:
+                            try:
+                                id_list.append(data_object[0]['id'])
+                            except (KeyError, TypeError):
+                                id_list.append(data_object['id'])
+            except (KeyError, TypeError):
+                try:
+                    if data[0][attribute]:
+                        try:
+                            if data[0][attribute]['id']:
+                                id_list.append(data[0][attribute]['id'])
+                        except (KeyError, TypeError):
+                            for data_object in data[0][attribute]:
+                                try:
+                                    id_list.append(data_object[0]['id'])
+                                except (KeyError, TypeError):
+                                    id_list.append(data_object['id'])
+                except (KeyError, TypeError):
+                    try:
+                        if data[0][0][attribute]:
+                            try:
+                                if data[0][0][attribute]['id']:
+                                    id_list.append(data[0][0][attribute]['id'])
+                            except (KeyError, TypeError):
+                                for data_object in data[0][0][attribute]:
+                                    try:
+                                        id_list.append(data_object[0]['id'])
+                                    except (KeyError, TypeError):
+                                        id_list.append(data_object['id'])
+                                    try:
+                                        id_list.append(data[0]['id'])
+                                    except (KeyError, TypeError):
+                                        id_list.append(data['id'])
+                    except (KeyError, TypeError):
+                        pass
+
         return id_list
 
-    @staticmethod
-    def get_object_list(data, field: str, data_format: str = 'xml'):
+    def get_object_list(self, data, field: str):
         """ get_id_list
 
             return a list of objects from the data matching your field stirng
@@ -264,15 +296,25 @@ class API(object):
             * data_format = (string) 'xml','json'
         """
         id_list = list()
-        if data_format == 'xml':
+        if self.AMPACHE_API == 'xml':
             return data.findall(field)
         else:
+            if not data:
+                return id_list
             try:
-                for data_object in data[field]:
-                    id_list.append(data_object['id'])
-            except TypeError:
-                for data_object in data:
-                    id_list.append(data_object[0])
+                for data_object in data[0][0][field]:
+                    id_list.append(data_object)
+            except KeyError:
+                try:
+                    for data_object in data[0][field]:
+                        id_list.append(data_object)
+                except KeyError:
+                    try:
+                        for data_object in data[field]:
+                            id_list.append(data_object)
+                    except (KeyError, TypeError):
+                        id_list.append(data)
+
         return id_list
 
     @staticmethod
@@ -372,9 +414,9 @@ class API(object):
         """
         try:
             result = urllib.request.urlopen(full_url)
-        except urllib.error.URLError:
-            return False
         except urllib.error.HTTPError:
+            return False
+        except urllib.error.URLError:
             return False
         except ValueError:
             return False
@@ -384,9 +426,8 @@ class API(object):
             if self.DOCS_PATH == "docs/":
                 self.DOCS_PATH = self.DOCS_PATH + api_format + "-responses/"
             url_response = ampache_response.decode('utf-8')
-            if self.AMPACHE_DEBUG:
-                print(url_response)
-                print(full_url)
+            print(url_response)
+            print(full_url)
             try:
                 if not os.path.isdir(self.DOCS_PATH):
                     os.makedirs(self.DOCS_PATH)
@@ -404,7 +445,7 @@ class API(object):
     """
 
     def handshake(self, ampache_url: str, ampache_api: str, ampache_user: str = False,
-                  timestamp: int = 0, version: str = '5.1.0'):
+                  timestamp: int = 0, version: str = '6.6.0'):
         """ handshake
             MINIMUM_API_VERSION=380001
 
@@ -441,6 +482,8 @@ class API(object):
         # json format
         if self.AMPACHE_API == 'json':
             json_data = json.loads(ampache_response.decode('utf-8'))
+            if 'api' in json_data:
+                self.AMPACHE_SERVER = json_data['api']
             if 'auth' in json_data:
                 self.AMPACHE_SESSION = json_data['auth']
                 return json_data['auth']
@@ -453,13 +496,17 @@ class API(object):
             except ElementTree.ParseError:
                 return False
             try:
+                self.AMPACHE_SERVER = tree.find('api').text
+            except AttributeError:
+                pass
+            try:
                 token = tree.find('auth').text
             except AttributeError:
                 token = False
             self.AMPACHE_SESSION = token
             return token
 
-    def ping(self, ampache_url: str, ampache_api: str = False, version: str = '5.1.0'):
+    def ping(self, ampache_url: str, ampache_api: str = False, version: str = '6.6.0'):
         """ ping
             MINIMUM_API_VERSION=380001
 
@@ -484,6 +531,8 @@ class API(object):
         # json format
         if self.AMPACHE_API == 'json':
             json_data = json.loads(ampache_response.decode('utf-8'))
+            if 'api' in json_data:
+                self.AMPACHE_SERVER = json_data['api']
             if 'session_expire' in json_data:
                 if not self.AMPACHE_URL:
                     self.AMPACHE_URL = ampache_url
@@ -498,13 +547,67 @@ class API(object):
             except ElementTree.ParseError:
                 return False
             try:
-                tree.find('session_expire').text
-                if not self.AMPACHE_URL:
+                self.AMPACHE_SERVER = tree.find('api').text
+            except AttributeError:
+                pass
+            try:
+                token = tree.find('session_expire').text
+                if token and not self.AMPACHE_URL:
                     self.AMPACHE_URL = ampache_url
                 self.AMPACHE_SESSION = ampache_api
             except AttributeError:
                 return False
             return ampache_api
+
+    def register(self, username, fullname, password, email):
+        """ register
+            MINIMUM_API_VERSION=6.0.0
+
+            Register a new user.
+            Requires the username, password and email.
+
+            INPUTS
+            * username = (string) $username
+            * fullname = (string) $fullname //optional
+            * password = (string) hash('sha256', $password))
+            * email    = (string) $email
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'register',
+                'username': username,
+                'fullname': fullname,
+                'password': password,
+                'email': email}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'register')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def lost_password(self):
+        """ lost_password
+            MINIMUM_API_VERSION=6.1.0
+
+            Allows a non-admin user to reset their password without web access to the main site.
+            It requires a reset token hash using your username and email
+
+            INPUTS
+            * auth = (string) (
+                $username;
+                $key = hash('sha256', 'email');
+                auth = hash('sha256', $username . $key);
+              ) 
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'goodbye',
+                'auth': self.AMPACHE_SESSION}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'goodbye')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
 
     def goodbye(self):
         """ goodbye
@@ -542,8 +645,7 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def get_similar(self, object_type, filter_id: int,
-                    offset=0, limit=0):
+    def get_similar(self, object_type, filter_id: int, offset=0, limit=0):
         """ get_similar
             MINIMUM_API_VERSION=420000
 
@@ -569,16 +671,153 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def get_indexes(self, object_type,
-                    filter_str: str = False, exact: int = False, add: int = False, update: int = False,
-                    include=False, offset=0, limit=0):
+    def list(self, object_type, filter_str: str = False,
+             exact: int = False, add: int = False, update: int = False, offset=0, limit=0):
+        """ list
+            MINIMUM_API_VERSION=6.0.0
+
+            This takes a named array of objects and returning `id`, `name`, `prefix` and `basename`
+
+            INPUTS
+            * object_type = (string) 'song'|'album'|'artist'|'album_artist'|'playlist'
+            * filter_str  = (string) search the name of the object_type //optional
+            * exact       = (integer) 0,1, if true filter is exact rather then fuzzy //optional
+            * add         = (integer) UNIXTIME() //optional
+            * update      = (integer) UNIXTIME() //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'list',
+                'auth': self.AMPACHE_SESSION,
+                'type': object_type,
+                'filter': filter_str,
+                'exact': exact,
+                'add': add,
+                'update': update,
+                'offset': str(offset),
+                'limit': str(limit)}
+        if not filter_str:
+            data.pop('filter')
+        if not exact:
+            data.pop('exact')
+        if not add:
+            data.pop('add')
+        if not update:
+            data.pop('update')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'list')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def browse(self, filter_str: str = False,
+               object_type: str = False, catalog: int = False, add: int = False, update: int = False,
+               offset=0, limit=0):
+        """ browse
+            MINIMUM_API_VERSION=6.0.0
+
+            Return children of a parent object in a folder traversal/browse style
+            If you don't send any parameters you'll get a catalog list (the 'root' path)
+
+            INPUTS
+            * filter_str  = (string) object_id //optional
+            * object_type = (string) 'root', 'catalog', 'artist', 'album', 'podcast' // optional
+            * catalog = (integer) catalog ID you are browsing
+            * add     = Api::set_filter(date) //optional
+            * update  = Api::set_filter(date) //optional
+            * offset  = (integer) //optional
+            * limit   = (integer) //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'browse',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_str,
+                'type': object_type,
+                'catalog': catalog,
+                'add': add,
+                'update': update,
+                'offset': str(offset),
+                'limit': str(limit)}
+        if not filter_str:
+            data.pop('filter')
+        if not object_type:
+            data.pop('type')
+        if not catalog:
+            data.pop('catalog')
+        if not add:
+            data.pop('add')
+        if not update:
+            data.pop('update')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'browse')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def index(self, object_type, filter_str: str = False, exact: int = False,
+              add: int = False, update: int = False, include: int = False, offset=0, limit=0, hide_search: int = False):
+        """ index
+            MINIMUM_API_VERSION=400001
+
+            This takes a collection of inputs and return ID's for the object type
+            Add 'include' to include child objects
+
+            INPUTS
+            * object_type = (string) 'catalog', 'song', 'album', 'artist', 'album_artist', 'song_artist', 'playlist', 'podcast', 'podcast_episode', 'share', 'video', 'live_stream'
+            * filter_str  = (string) search the name of the object_type //optional
+            * exact       = (integer) 0,1, if true filter is exact rather then fuzzy //optional
+            * add         = (integer) UNIXTIME() //optional
+            * update      = (integer) UNIXTIME() //optional
+            * include     = (integer) 0,1 include songs if available for that object //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+            * hide_search = (integer) 0,1, if true do not include searches/smartlists in the result //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        if bool(include):
+            include = 1
+        data = {'action': 'index',
+                'auth': self.AMPACHE_SESSION,
+                'type': object_type,
+                'filter': filter_str,
+                'exact': exact,
+                'add': add,
+                'update': update,
+                'include': include,
+                'offset': str(offset),
+                'limit': str(limit),
+                'hide_search': hide_search}
+        if not filter_str:
+            data.pop('filter')
+        if not exact:
+            data.pop('exact')
+        if not add:
+            data.pop('add')
+        if not update:
+            data.pop('update')
+        if not include:
+            data.pop('include')
+        if not hide_search:
+            data.pop('hide_search')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'index')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def get_indexes(self, object_type, filter_str: str = False,
+                    exact: int = False, add: int = False, update: int = False, include: int = False, offset=0, limit=0):
         """ get_indexes
             MINIMUM_API_VERSION=400001
 
             This takes a collection of inputs and returns ID + name for the object type
 
             INPUTS
-            * object_type = (string) 'song'|'album'|'artist'|'album_artist'|'playlist'
+            * object_type = (string) 'catalog'|'album_artist'|'song_artist'|'song'|'album'|'artist'|'album_artist'|'playlist'
             * filter_str  = (string) search the name of the object_type //optional
             * exact       = (integer) 0,1, if true filter is exact rather then fuzzy //optional
             * add         = (integer) UNIXTIME() //optional
@@ -590,8 +829,6 @@ class API(object):
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         if bool(include):
             include = 1
-        else:
-            include = 0
         data = {'action': 'get_indexes',
                 'auth': self.AMPACHE_SESSION,
                 'type': object_type,
@@ -604,6 +841,8 @@ class API(object):
                 'limit': str(limit)}
         if not filter_str:
             data.pop('filter')
+        if not exact:
+            data.pop('exact')
         if not add:
             data.pop('add')
         if not update:
@@ -618,7 +857,7 @@ class API(object):
         return self.return_data(ampache_response)
 
     def artists(self, filter_str: str = False,
-                add: int = False, update: int = False, offset=0, limit=0, include=False, album_artist=False):
+                add: int = False, update: int = False, offset=0, limit=0, include=False, album_artist: int = False):
         """ artists
             MINIMUM_API_VERSION=380001
 
@@ -688,7 +927,7 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def artist_albums(self, filter_id: int, offset=0, limit=0):
+    def artist_albums(self, filter_id: int, offset=0, limit=0, album_artist=False):
         """ artist_albums
             MINIMUM_API_VERSION=380001
 
@@ -696,15 +935,19 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) $artist_id
-            * offset      = (integer) //optional
-            * limit       = (integer) //optional
+            * offset       = (integer) //optional
+            * limit        = (integer) //optional
+            * album_artist = (integer) 0,1, if true return albums where the UID is an album_artist of the object //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'artist_albums',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_id,
                 'offset': str(offset),
-                'limit': str(limit)}
+                'limit': str(limit),
+                'album_artist': album_artist}
+        if not album_artist:
+            data.pop('album_artist')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'artist_albums')
@@ -719,9 +962,9 @@ class API(object):
             This returns the songs of the specified artist
 
             INPUTS
-            * filter_id   = (integer) $artist_id
-            * offset      = (integer) //optional
-            * limit       = (integer) //optional
+            * filter_id = (integer) $artist_id
+            * offset    = (integer) //optional
+            * limit     = (integer) //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'artist_songs',
@@ -737,7 +980,7 @@ class API(object):
         return self.return_data(ampache_response)
 
     def albums(self, filter_str: str = False,
-               exact=False, add: int = False, update: int = False, offset=0, limit=0,
+               exact: int = False, add: int = False, update: int = False, offset=0, limit=0,
                include=False):
         """ albums
             MINIMUM_API_VERSION=380001
@@ -767,6 +1010,8 @@ class API(object):
                 'include': include}
         if not filter_str:
             data.pop('filter')
+        if not exact:
+            data.pop('exact')
         if not add:
             data.pop('add')
         if not update:
@@ -806,7 +1051,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def album_songs(self, filter_id: int, offset=0, limit=0):
+    def album_songs(self, filter_id: int, offset=0, limit=0,
+                    exact: int = False):
         """ album_songs
             MINIMUM_API_VERSION=380001
 
@@ -816,13 +1062,21 @@ class API(object):
             * filter_id = (integer) $album_id
             * offset    = (integer) //optional
             * limit     = (integer) //optional
+            * exact     = (integer) 0,1, if true don't group songs from different disks //optional (IGNORED IN API6)
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        if bool(exact):
+            exact = 1
+        else:
+            exact = 0
         data = {'action': 'album_songs',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_id,
+                'exact': exact,
                 'offset': str(offset),
                 'limit': str(limit)}
+        if not exact:
+            data.pop('exact')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'album_songs')
@@ -846,8 +1100,8 @@ class API(object):
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'genres',
                 'auth': self.AMPACHE_SESSION,
-                'exact': exact,
                 'filter': filter_str,
+                'exact': exact,
                 'offset': str(offset),
                 'limit': str(limit)}
         if not filter_str:
@@ -953,8 +1207,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def songs(self, filter_str: str = False, exact: int = False,
-              add: int = False, update: int = False, offset=0, limit=0):
+    def songs(self, filter_str: str = False,
+              exact: int = False, add: int = False, update: int = False, offset=0, limit=0):
         """ songs
             MINIMUM_API_VERSION=380001
 
@@ -999,7 +1253,8 @@ class API(object):
             returns a single song
 
             INPUTS
-            * filter_id = (integer) $song_id
+            * filter_id  = (integer) $song_id
+            * get_lyrics = (integer) 0,1, if true fetch lyrics or try to find them using plugins //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'song',
@@ -1032,8 +1287,68 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def playlists(self, filter_str: str = False, exact: int = False, offset=0, limit=0, hide_search: int = False,
-                  show_dupes: int = False):
+    def user_playlists(self, filter_str: str = False, exact: int = False, offset=0, limit=0):
+        """ user_playlists
+            MINIMUM_API_VERSION=6.3.0
+
+            This returns playlists based on the specified filter (Does not include searches / smartlists)
+
+            INPUTS
+            * filter_str  = (string) search the name of a playlist //optional
+            * exact       = (integer) 0,1, if true filter is exact rather then fuzzy //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'user_playlists',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_str,
+                'exact': exact,
+                'offset': str(offset),
+                'limit': str(limit)}
+        if not filter_str:
+            data.pop('filter')
+        if not exact:
+            data.pop('exact')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'user_playlists')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def user_smartlists(self, filter_str: str = False, exact: int = False, offset=0, limit=0):
+        """ user_smartlists
+            MINIMUM_API_VERSION=6.3.0
+
+            This returns smartlists (searches) based on the specified filter (Does not include playlists)
+
+            INPUTS
+            * filter_str  = (string) search the name of a playlist //optional
+            * exact       = (integer) 0,1, if true filter is exact rather then fuzzy //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'user_smartlists',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_str,
+                'exact': exact,
+                'offset': str(offset),
+                'limit': str(limit)}
+        if not filter_str:
+            data.pop('filter')
+        if not exact:
+            data.pop('exact')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'user_smartlists')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def playlists(self, filter_str: str = False, exact: int = False,
+                  offset=0, limit=0, hide_search: int = False, show_dupes: int = False, include: int = False):
         """ playlists
             MINIMUM_API_VERSION=380001
 
@@ -1046,16 +1361,18 @@ class API(object):
             * limit       = (integer) //optional
             * hide_search = (integer) 0,1, if true do not include searches/smartlists in the result //optional
             * show_dupes  = (integer) 0,1, if true ignore 'api_hide_dupe_searches' setting //optional
+            * include     = (integer) 0,1, if true include the objects in the playlist //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'playlists',
                 'auth': self.AMPACHE_SESSION,
-                'exact': exact,
                 'filter': filter_str,
+                'exact': exact,
                 'offset': str(offset),
                 'limit': str(limit),
                 'hide_search': hide_search,
-                'show_dupes': show_dupes}
+                'show_dupes': show_dupes,
+                'include': include}
         if not filter_str:
             data.pop('filter')
         if not exact:
@@ -1064,6 +1381,8 @@ class API(object):
             data.pop('hide_search')
         if not show_dupes:
             data.pop('show_dupes')
+        if not include:
+            data.pop('include')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'playlists')
@@ -1091,7 +1410,27 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def playlist_songs(self, filter_id: int, offset=0, limit=0):
+    def playlist_hash(self, filter_id: int):
+        """ playlist_hash
+            MINIMUM_API_VERSION=6.6.0
+
+            his returns the md5 hash for the songs in a playlist
+
+            INPUTS
+            filter_id = (string) UID of playlist
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'playlist_hash',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'playlist_hash')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def playlist_songs(self, filter_id: int, random: int = False, offset=0, limit=0):
         """ playlist_songs
             MINIMUM_API_VERSION=380001
 
@@ -1099,6 +1438,7 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) $playlist_id
+            * random      = (integer) 0,1, if true get random songs using limit //optional
             * offset      = (integer) //optional
             * limit       = (integer) //optional
         """
@@ -1106,8 +1446,11 @@ class API(object):
         data = {'action': 'playlist_songs',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_id,
+                'random': random,
                 'offset': str(offset),
                 'limit': str(limit)}
+        if not random:
+            data.pop('random')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'playlist_songs')
@@ -1182,6 +1525,30 @@ class API(object):
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'playlist_delete')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def playlist_add(self, filter_id: int, object_id: int, object_type: str):
+        """ playlist_add
+            MINIMUM_API_VERSION=6.3.0
+
+            This adds a song to a playlist, allowing different song parent types
+
+            INPUTS
+            * filter = (int) UID of playlist
+            * id     = (int) $object_id
+            * type   = (string) 'song', 'album', 'artist', 'playlist'
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'playlist_add',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id,
+                'id': object_id,
+                'type': object_type}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'playlist_add')
         if not ampache_response:
             return False
         return self.return_data(ampache_response)
@@ -1376,8 +1743,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def share_edit(self, filter_id: int, can_stream=False, can_download=False,
-                   expires=False, description=False):
+    def share_edit(self, filter_id: int, can_stream: int = False, can_download: int = False,
+                   expires: int = False, description=False):
         """ share_edit
             MINIMUM_API_VERSION=420000
 
@@ -1480,6 +1847,73 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
+    def catalog_add(self, cat_name, cat_path, cat_type=False, media_type=False, file_pattern=False,
+                    folder_pattern=False, username=False, password=False):
+        """ catalog_add
+            MINIMUM_API_VERSION=6.0.0
+
+            Create a new catalog
+
+            INPUTS
+            * name           = (string) catalog_name
+            * path           = (string) URL or folder path for your catalog
+            * type           = (string) catalog_type default: local ('local', 'beets', 'remote', 'subsonic', 'seafile', 'beetsremote') //optional
+            * media_type     = (string) Default: 'music' ('music', 'podcast', 'clip', 'tvshow', 'movie', 'personal_video') //optional
+            * file_pattern   = (string) Pattern used identify tags from the file name. Default '%T - %t' //optional
+            * folder_pattern = (string) Pattern used identify tags from the folder name. Default '%a/%A' //optional
+            * username       = (string) login to remote catalog ('remote', 'subsonic', 'seafile') //optional
+            * password       = (string) password to remote catalog ('remote', 'subsonic', 'seafile', 'beetsremote') //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'catalog_add',
+                'auth': self.AMPACHE_SESSION,
+                'name': cat_name,
+                'path': cat_path,
+                'type': cat_type,
+                'media_type': media_type,
+                'file_pattern': file_pattern,
+                'folder_pattern': folder_pattern,
+                'username': username,
+                'password': password}
+        if not cat_type:
+            data.pop('type')
+        if not media_type:
+            data.pop('media_type')
+        if not file_pattern:
+            data.pop('file_pattern')
+        if not folder_pattern:
+            data.pop('folder_pattern')
+        if not username:
+            data.pop('username')
+        if not password:
+            data.pop('password')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'catalog_action')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def catalog_delete(self, filter_id: int):
+        """ catalog_delete
+            MINIMUM_API_VERSION=6.0.0
+
+            Delete an existing catalog. (if it exists)
+
+            INPUTS
+            * filter = (string) catalog_id to delete
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'catalog_delete',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'bookmark_delete')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
     def catalog_action(self, task, catalog_id):
         """ catalog_action
             MINIMUM_API_VERSION=400001
@@ -1519,6 +1953,32 @@ class API(object):
         data = {'action': 'catalog_file',
                 'auth': self.AMPACHE_SESSION,
                 'file': file,
+                'task': task,
+                'catalog': catalog_id}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'catalog_action')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def catalog_folder(self, folder, task, catalog_id):
+        """ catalog_folder
+            MINIMUM_API_VERSION=6.0.0
+
+            Perform actions on local catalog folders.
+            Single folder versions of catalog add, clean and verify.
+            Make sure you remember to urlencode those folder names!
+
+            INPUTS
+            * folder        = (string) urlencode(FULL path to local folder)
+            * task        = (string) 'add'|'clean'|'verify'|'remove'
+            * catalog_id  = (integer) $catalog_id
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'catalog_folder',
+                'auth': self.AMPACHE_SESSION,
+                'folder': folder,
                 'task': task,
                 'catalog': catalog_id}
         data = urllib.parse.urlencode(data)
@@ -1776,9 +2236,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def advanced_search(self, rules,
-                        operator='and', object_type='song', offset=0, limit=0, random=0):
-        """ advanced_search
+    def search(self, rules, operator='and', object_type='song', offset=0, limit=0, random=0):
+        """ search
             MINIMUM_API_VERSION=380001
 
             Perform an advanced search given passed rules
@@ -1788,7 +2247,7 @@ class API(object):
             http://ampache.org/api/api-advanced-search
 
             INPUTS
-            * rules       = (array) = [[rule_1,rule_1_operator,rule_1_input], [rule_2,rule_2_operator,rule_2_input], [etc]]
+            * rules       = (array) = [[rule_1,rule_1_operator,rule_1_input],[rule_2,rule_2_operator,rule_2_input],[etc]]
             * operator    = (string) 'and'|'or' (whether to match one rule or all) //optional
             * object_type = (string)  //optional
             * offset      = (integer) //optional
@@ -1796,7 +2255,7 @@ class API(object):
             * random      = (integer) 0|1' //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
-        data = {'action': 'advanced_search',
+        data = {'action': 'search',
                 'auth': self.AMPACHE_SESSION,
                 'operator': operator,
                 'type': object_type,
@@ -1815,7 +2274,52 @@ class API(object):
                 data['rule_' + str(count) + '_subtype'] = item[3]
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
-        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'advanced_search')
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'search')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def search_group(self, rules,
+                     operator='and', object_type='all', offset=0, limit=0, random=0):
+        """ search_group
+            MINIMUM_API_VERSION=6.3.0
+
+            Perform a search given passed rules and return matching objects in a group.
+            If the rules to not exist for the object type or would return the entire table they will not return objects
+
+            Refer to the wiki for further information on rule_* types and data
+            https://ampache.org/api/api-xml-methods
+            https://ampache.org/api/api-json-methods
+
+            INPUTS
+            * rules       = (array) = [[rule_1,rule_1_operator,rule_1_input],[rule_2,rule_2_operator,rule_2_input],[etc]]
+            * operator    = (string) 'and'|'or' (whether to match one rule or all) //optional
+            * object_type = (string)  //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+            * random      = (integer) 0|1' //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'search_group',
+                'auth': self.AMPACHE_SESSION,
+                'operator': operator,
+                'type': object_type,
+                'offset': offset,
+                'limit': limit,
+                'random': random}
+        count = 0
+        # inputs  [rule_1, rule_1_operator, rule_1_input]
+        # example ['year', 2, 1999]
+        for item in rules:
+            count = count + 1
+            data['rule_' + str(count)] = item[0]
+            data['rule_' + str(count) + '_operator'] = item[1]
+            data['rule_' + str(count) + '_input'] = item[2]
+            if item[0] == 'metadata':
+                data['rule_' + str(count) + '_subtype'] = item[3]
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'search_group')
         if not ampache_response:
             return False
         return self.return_data(ampache_response)
@@ -1871,7 +2375,7 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def localplay(self, command, oid=False, otype=False, clear=0):
+    def localplay(self, command, oid: int = False, otype=False, clear: int = False):
         """ localplay
             MINIMUM_API_VERSION=380001
             CHANGED_IN_API_VERSION=5.0.0
@@ -2100,6 +2604,50 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
+    def player(self, filter_str, object_type='song', state='play', play_time=0, client='python3-ampache'):
+        """ player
+            MINIMUM_API_VERSION=6.4.0
+
+            Inform the server about the state of your client. (Song you are playing, Play/Pause state, etc.)
+
+            filter_str  = (integer) $object_id
+            object_type = (string)  $object_type ('song', 'podcast_episode', 'video'), DEFAULT 'song'//optional
+            state       = (string)  'play', 'stop', DEFAULT 'play' //optional
+            play_time   = (integer) current song time in whole seconds, DEFAULT 0 //optional
+            client      = (string)  $agent, DEFAULT 'python3-ampache' //optional
+        """
+        action = self.player.__name__
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': action,
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_str,
+                'type': object_type,
+                'state': state,
+                'time': play_time,
+                'client': client}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, action)
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def now_playing(self):
+        """  now_playing
+             MINIMUM_API_VERSION=6.3.1
+
+             Get what is currently being played by all users.
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'now_playing',
+                'auth': self.AMPACHE_SESSION}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'now_playing')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
     def rate(self, object_type, object_id, rating):
         """ rate
             MINIMUM_API_VERSION=380001
@@ -2158,7 +2706,7 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def record_play(self, object_id, user_id, client='AmpacheAPI'):
+    def record_play(self, object_id, user_id=False, client='python3-ampache', date=False):
         """ record_play
             MINIMUM_API_VERSION=400001
 
@@ -2167,15 +2715,21 @@ class API(object):
 
             INPUTS
             * object_id   = (integer) $object_id
-            * user_id     = (integer) $user_id
+            * user_id     = (integer) $user_id //optional
             * client      = (string) $agent //optional
+            * date        = (integer) UNIXTIME() //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'record_play',
                 'auth': self.AMPACHE_SESSION,
                 'id': object_id,
                 'user': user_id,
-                'client': client}
+                'client': client,
+                'date': date}
+        if not user_id:
+            data.pop('user')
+        if not date:
+            data.pop('date')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'record_play')
@@ -2185,7 +2739,7 @@ class API(object):
 
     def scrobble(self, title, artist_name, album_name,
                  mbtitle=False, mbartist=False, mbalbum=False, stime=False,
-                 client='AmpacheAPI'):
+                 client='python3-ampache'):
         """ scrobble
             MINIMUM_API_VERSION=400001
 
@@ -2369,17 +2923,18 @@ class API(object):
         return True
 
     def download(self, object_id, object_type, destination,
-                 transcode='raw'):
+                 transcode='raw', bitrate=False):
         """ download
             MINIMUM_API_VERSION=400001
 
             download a song or podcast episode
 
             INPUTS
-            * object_id   = (string) $song_id / $podcast_episode_id
-            * object_type = (string) 'song'|'podcast'
+            * object_id   = (string) $song_id / $podcast_episode_id / $search_id / $playlist_id
+            * object_type = (string) 'song'|'podcast'|'search'|'playlist'
             * destination = (string) full file path
-            * transcode   = (string) 'mp3', 'ogg', etc. ('raw' / original by default) //optional
+            * transcode   = (string) 'mp3', 'ogg', etc. ('raw' / original by default) //optional SONG ONLY
+            * bitrate     = (integer) max bitrate for transcoding, '128', '256' //optional SONG ONLY
         """
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
@@ -2387,7 +2942,10 @@ class API(object):
                 'auth': self.AMPACHE_SESSION,
                 'id': object_id,
                 'type': object_type,
-                'format': transcode}
+                'format': transcode,
+                'bitrate': bitrate}
+        if not bitrate:
+            data.pop('bitrate')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         result = requests.get(full_url, allow_redirects=True)
@@ -2455,30 +3013,34 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def user_update(self, username, password=False, fullname=False, email=False,
-                    website=False, state=False, city=False, disable=False, maxbitrate=False):
-        """ user_update
-            MINIMUM_API_VERSION=400001
+    def user_edit(self, username, password=False, fullname=False, email=False,
+                  website=False, state=False, city=False, disable=False, maxbitrate=False,
+                  fullname_public=False, reset_apikey=False, reset_streamtoken=False, clear_stats=False):
+        """ user_edit
+            MINIMUM_API_VERSION=6.0.0
 
             Update an existing user. @param array $input
 
             INPUTS
-            * username    = (string) $username
-            * password    = (string) hash('sha256', $password)) //optional
-            * fullname    = (string) //optional
-            * email       = (string) 'user@gmail.com' //optional
-            * website     = (string) //optional
-            * state       = (string) //optional
-            * city        = (string) //optional
-            * disable     = (boolean|integer) (True,False | 0|1) //optional
-            * maxbitrate  = (string) //optional
+            * username          = (string) $username
+            * password          = (string) hash('sha256', $password)) //optional
+            * fullname          = (string) $fullname //optional
+            * email             = (string) $email //optional
+            * website           = (string) $website //optional
+            * state             = (string) $state //optional
+            * city              = (string) $city //optional
+            * disable           = (integer) 0,1 true to disable the user (if enabled) //optional
+            * group             = (integer) Catalog filter group for the new user //optional, default = 0
+            * maxbitrate        = (integer) $maxbitrate //optional
+            * fullname_public   = (integer) 0,1 true to enable, false to disable using fullname in public display //optional
+            * reset_apikey      = (integer) 0,1 true to reset a user Api Key //optional
+            * reset_streamtoken = (integer) 0,1 true to reset a user Stream Token //optional
+            * clear_stats       = (integer) 0,1 true reset all stats for this user //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         if bool(disable):
             disable = 1
-        else:
-            disable = 0
-        data = {'action': 'user_update',
+        data = {'action': 'user_edit',
                 'auth': self.AMPACHE_SESSION,
                 'username': username,
                 'password': password,
@@ -2488,7 +3050,11 @@ class API(object):
                 'state': state,
                 'city': city,
                 'disable': disable,
-                'maxbitrate': maxbitrate}
+                'maxbitrate': maxbitrate,
+                'fullname_public': fullname_public,
+                'reset_apikey': reset_apikey,
+                'reset_streamtoken': reset_streamtoken,
+                'clear_stats': clear_stats}
         if not password:
             data.pop('password')
         if not fullname:
@@ -2501,8 +3067,18 @@ class API(object):
             data.pop('state')
         if not city:
             data.pop('city')
+        if not disable:
+            data.pop('disable')
         if not maxbitrate:
             data.pop('maxbitrate')
+        if not fullname_public:
+            data.pop('fullname_public')
+        if not reset_apikey:
+            data.pop('reset_apikey')
+        if not reset_streamtoken:
+            data.pop('reset_streamtoken')
+        if not clear_stats:
+            data.pop('clear_stats')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'user_update')
@@ -2555,15 +3131,15 @@ class API(object):
             Returns preference based on the specified filter_str
 
             INPUTS
-            * filter_str  = (string) search the name of a preference //optional
+            * filter_str  = (string) search the name of a preference
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
-        data = {'action': 'user_preferences',
+        data = {'action': 'user_preference',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_str}
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
-        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'user_preferences')
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'user_preference')
         if not ampache_response:
             return False
         return self.return_data(ampache_response)
@@ -2593,15 +3169,15 @@ class API(object):
             Returns preference based on the specified filter_str
 
             INPUTS
-            * filter_str  = (string) search the name of a preference //optional
+            * filter_str  = (string) search the name of a preference
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
-        data = {'action': 'system_preferences',
+        data = {'action': 'system_preference',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_str}
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
-        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'system_preferences')
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'system_preference')
         if not ampache_response:
             return False
         return self.return_data(ampache_response)
@@ -2705,8 +3281,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def licenses(self, filter_str: str = False, exact: int = False,
-                 add: int = False, update: int = False, offset=0, limit=0):
+    def licenses(self, filter_str: str = False,
+                 exact: int = False, add: int = False, update: int = False, offset=0, limit=0):
         """ licenses
             MINIMUM_API_VERSION=420000
 
@@ -2784,8 +3360,8 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def live_streams(self, filter_str: str = False, exact: int = False,
-                     offset=0, limit=0):
+    def live_streams(self, filter_str: str = False,
+                     exact: int = False, offset=0, limit=0):
         """ live_streams
             MINIMUM_API_VERSION=5.1.0
 
@@ -2819,7 +3395,7 @@ class API(object):
         """ live_stream
             MINIMUM_API_VERSION=5.1.0
 
-            returns a single live_stream based on UID
+            Returns a single live_stream based on UID
 
             INPUTS
             * filter_id   = (integer) $live_stream_id
@@ -2835,8 +3411,99 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def labels(self, filter_str: str = False, exact: int = False,
-               offset=0, limit=0):
+    def live_stream_create(self, name: str, stream_url: str, codec: str, catalog_id: int, site_url: str = ''):
+        """ live_stream_create
+            MINIMUM_API_VERSION=6.0.0
+
+            Create a live_stream (radio station) object.
+
+            INPUTS
+            * name     = (string) Stream title
+            * url      = (string) URL of the http/s stream
+            * codec    = (string) stream codec ('mp3', 'flac', 'ogg', 'vorbis', 'opus', 'aac', 'alac')
+            * catalog  = (int) Catalog ID to associate with this stream
+            * site_url = (string) Homepage URL of the stream //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'live_stream_create',
+                'auth': self.AMPACHE_SESSION,
+                'name': name,
+                'url': stream_url,
+                'codec': codec,
+                'catalog': catalog_id,
+                'site_url': site_url}
+        if not site_url:
+            data.pop('site_url')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'live_stream_create')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def live_stream_edit(self, filter_id, name: str = '', stream_url: str = '', codec: str = '', catalog_id: int = 0,
+                         site_url: str = ''):
+        """ live_stream_edit
+            MINIMUM_API_VERSION=6.0.0
+
+            Edit a live_stream (radio station) object.
+
+            INPUTS
+            * filter   = (string) object_id
+            * name     = (string) Stream title //optional
+            * url      = (string) URL of the http/s stream //optional
+            * codec    = (string) stream codec ('mp3', 'flac', 'ogg', 'vorbis', 'opus', 'aac', 'alac') //optional
+            * catalog  = (int) Catalog ID to associate with this stream //optional
+            * site_url = (string) Homepage URL of the stream //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'live_stream_edit',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id,
+                'name': name,
+                'url': stream_url,
+                'codec': codec,
+                'catalog': catalog_id,
+                'site_url': site_url}
+        if not name:
+            data.pop('name')
+        if not stream_url:
+            data.pop('url')
+        if not codec:
+            data.pop('codec')
+        if not catalog_id:
+            data.pop('catalog')
+        if not site_url:
+            data.pop('site_url')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'live_stream_edit')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def live_stream_delete(self, filter_id: int):
+        """ live_stream_delete
+            MINIMUM_API_VERSION=6.0.0
+
+            Delete an existing live_stream (radio station). (if it exists)
+
+            INPUTS
+            * filter_id = (integer) object_id
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'live_stream_delete',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id}
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'live_stream_delete')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
+    def labels(self, filter_str: str = False,
+               exact: int = False, offset=0, limit=0):
         """ labels
             MINIMUM_API_VERSION=420000
 
@@ -2851,8 +3518,8 @@ class API(object):
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'labels',
                 'auth': self.AMPACHE_SESSION,
-                'exact': exact,
                 'filter': filter_str,
+                'exact': exact,
                 'offset': str(offset),
                 'limit': str(limit)}
         if not filter_str:
@@ -2906,7 +3573,7 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def get_bookmark(self, filter_id: str, object_type: str):
+    def get_bookmark(self, filter_id: str, object_type: str, include=False, show_all=False):
         """ get_bookmark
             MINIMUM_API_VERSION=5.0.0
 
@@ -2914,13 +3581,21 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) object_id
-            * object_type = (string) object_type ('song', 'video', 'podcast_episode')
+            * object_type = (string) object_type ('bookmark', 'song', 'video', 'podcast_episode')
+            * include     = (integer) 0,1, if true include the object in the bookmark //optional
+            * all         = (integer) 0,1, if true every bookmark related to the object //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'get_bookmark',
                 'auth': self.AMPACHE_SESSION,
                 'filter': filter_id,
-                'type': object_type}
+                'type': object_type,
+                'include': include,
+                'all': show_all}
+        if not include:
+            data.pop('include')
+        if not show_all:
+            data.pop('all')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'get_bookmark')
@@ -2928,17 +3603,25 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
-    def bookmarks(self):
+    def bookmarks(self, client=False, include=False):
         """ bookmarks
             MINIMUM_API_VERSION=5.0.0
 
             Get information about bookmarked media this user is allowed to manage.
 
             INPUTS
+            * client  = (string) filter by bookmark_id //optional
+            * include = (integer) 0,1, if true include the object in the bookmark //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'bookmarks',
-                'auth': self.AMPACHE_SESSION}
+                'auth': self.AMPACHE_SESSION,
+                'client': client,
+                'include': include}
+        if not client:
+            data.pop('client')
+        if not include:
+            data.pop('include')
         data = urllib.parse.urlencode(data)
         full_url = ampache_url + '?' + data
         ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'bookmarks')
@@ -2946,8 +3629,32 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
+    def bookmark(self, filter_id: str, include=False):
+        """ bookmark
+            MINIMUM_API_VERSION=6.1.0
+
+            Get information about bookmarked media this user is allowed to manage.
+
+            INPUTS
+            * filter  = (string) bookmark_id
+            * include = (integer) 0,1, if true include the object in the bookmark //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'bookmark',
+                'auth': self.AMPACHE_SESSION,
+                'filter': filter_id,
+                'include': include}
+        if not include:
+            data.pop('include')
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'bookmark')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
+
     def bookmark_create(self, filter_id, object_type,
-                        position: int = 0, client: str = 'AmpacheAPI', date=False):
+                        position: int = 0, client: str = 'python3-ampache', date=False, include=False):
         """ bookmark_create
             MINIMUM_API_VERSION=5.0.0
 
@@ -2955,10 +3662,11 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) object_id
-            * object_type = (string) object_type ('song', 'video', 'podcast_episode')
+            * object_type = (string) object_type ('bookmark', 'song', 'video', 'podcast_episode')
             * position    = (integer) current track time in seconds
-            * client      = (string) Agent string. (Default: 'AmpacheAPI') //optional
+            * client      = (string) Agent string. (Default: 'python3-ampache') //optional
             * date        = (integer) update time (Default: UNIXTIME()) //optional
+            * include     = (integer) 0,1, if true include the object in the bookmark //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'bookmark_create',
@@ -2980,7 +3688,7 @@ class API(object):
         return self.return_data(ampache_response)
 
     def bookmark_edit(self, filter_id, object_type,
-                      position: int = 0, client: str = 'AmpacheAPI', date=False):
+                      position: int = 0, client: str = 'python3-ampache', date=False, include=False):
         """ bookmark_edit
             MINIMUM_API_VERSION=5.0.0
 
@@ -2988,10 +3696,11 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) object_id
-            * object_type = (string) object_type ('song', 'video', 'podcast_episode')
+            * object_type = (string) object_type ('bookmark', 'song', 'video', 'podcast_episode')
             * position    = (integer) current track time in seconds
-            * client      = (string) Agent string. (Default: 'AmpacheAPI') //optional
+            * client      = (string) Agent string. (Default: 'python3-ampache') //optional
             * date        = (integer) update time (Default: UNIXTIME()) //optional
+            * include     = (integer) 0,1, if true include the object in the bookmark //optional
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'bookmark_edit',
@@ -3020,7 +3729,7 @@ class API(object):
 
             INPUTS
             * filter_id   = (integer) object_id
-            * object_type = (string) object_type ('song', 'video', 'podcast_episode')
+            * object_type = (string) object_type ('bookmark', 'song', 'video', 'podcast_episode')
         """
         ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
         data = {'action': 'bookmark_delete',
@@ -3105,6 +3814,50 @@ class API(object):
     BACKCOMPAT FUNCTIONS
     --------------------
     """
+
+    def advanced_search(self, rules,
+                        operator='and', object_type='song', offset=0, limit=0, random=0):
+        """ advanced_search
+            MINIMUM_API_VERSION=380001
+
+            Perform an advanced search given passed rules
+            the rules can occur multiple times and are joined by the operator item.
+
+            Refer to the wiki for further information
+            http://ampache.org/api/api-advanced-search
+
+            INPUTS
+            * rules       = (array) = [[rule_1,rule_1_operator,rule_1_input],[rule_2,rule_2_operator,rule_2_input],[etc]]
+            * operator    = (string) 'and'|'or' (whether to match one rule or all) //optional
+            * object_type = (string)  //optional
+            * offset      = (integer) //optional
+            * limit       = (integer) //optional
+            * random      = (integer) 0|1' //optional
+        """
+        ampache_url = self.AMPACHE_URL + '/server/' + self.AMPACHE_API + '.server.php'
+        data = {'action': 'advanced_search',
+                'auth': self.AMPACHE_SESSION,
+                'operator': operator,
+                'type': object_type,
+                'offset': offset,
+                'limit': limit,
+                'random': random}
+        count = 0
+        # inputs  [rule_1, rule_1_operator, rule_1_input]
+        # example ['year', 2, 1999]
+        for item in rules:
+            count = count + 1
+            data['rule_' + str(count)] = item[0]
+            data['rule_' + str(count) + '_operator'] = item[1]
+            data['rule_' + str(count) + '_input'] = item[2]
+            if item[0] == 'metadata':
+                data['rule_' + str(count) + '_subtype'] = item[3]
+        data = urllib.parse.urlencode(data)
+        full_url = ampache_url + '?' + data
+        ampache_response = self.fetch_url(full_url, self.AMPACHE_API, 'advanced_search')
+        if not ampache_response:
+            return False
+        return self.return_data(ampache_response)
 
     def tags(self, filter_str: str = False,
              exact: int = False, offset=0, limit=0):
@@ -3229,3 +3982,14 @@ class API(object):
             return False
         return self.return_data(ampache_response)
 
+    def user_update(self, username, password=False, fullname=False, email=False,
+                    website=False, state=False, city=False, disable=False, maxbitrate=False,
+                    fullname_public=False, reset_apikey=False, reset_streamtoken=False, clear_stats=False):
+        """ user_update
+            MINIMUM_API_VERSION=6.0.0
+
+            Update an existing user. Backcompat function for api6 (Use user_edit)
+        """
+        return self.user_edit(username, password, fullname, email,
+                              website, state, city, disable, maxbitrate,
+                              fullname_public, reset_apikey, reset_streamtoken, clear_stats)
