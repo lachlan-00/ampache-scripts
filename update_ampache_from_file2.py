@@ -161,7 +161,6 @@ if not process == 'check':
 
 if ampache_session:
     print('Connection Established\n')
-    executionlist = []
     if os.path.isfile(dumpfile):
         print('Processing file ' + dumpfile)
         with open(dumpfile, 'r', encoding="utf8") as csvfile:
@@ -375,7 +374,7 @@ if ampache_session:
                                                                               str(tmp2), str(tmp3), str(tmp4),
                                                                               str(tmp5), str(tmp6)))
                         if success:
-                            print('SUCCESS', tmpline)
+                            print('PLAYED', tmpline)
                         else:
                             print('FAILED', tmpline)
 
