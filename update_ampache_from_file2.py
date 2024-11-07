@@ -11,6 +11,8 @@
   if it matches the artist, album and song
   it will update your database to reflect each play
 
+  Details on the Ampache wiki [here](https://github.com/ampache/ampache/wiki/import-lastfm-data)
+
 """
 import ampache
 import csv
